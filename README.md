@@ -9,7 +9,7 @@
 | STT | Họ và Tên (Full Name) | MSSV (Student ID) |
 | :---: | :--- | :---: |
 | **01** | ĐỖ  ĐỨC HUY | 20233441 |
-
+| **02** | ĐINH NGỌC HOÀNG | 20233408 |
 
 ---
 
