@@ -219,8 +219,8 @@ Tài liệu này bao gồm:
 
 ## 9. Kết luận
 
-Dự án đã hoàn thành xuất sắc các mục tiêu đề ra cho bài tập môn học ET3310:
-1. Xây dựng thành công thuật toán mã hóa dòng Rabbit tuân thủ chuẩn xác **RFC 4503**.
+Dự án đã hoàn thành các mục tiêu đề ra cho bài tập môn học ET3310:
+1. Triển khai được thuật toán mã hóa dòng Rabbit tuân thủ chuẩn xác **RFC 4503**.
 2. Triển khai kiến trúc thư mục chuẩn mực, cấu trúc mã nguồn C++ sạch và phân tầng rõ ràng.
 3. Ứng dụng các kỹ thuật tối ưu hóa bitwise bậc cao giúp chương trình đạt thông lượng tính toán vượt trội trên phần mềm.
 4. Đảm bảo độ an toàn tuyệt đối trong việc bảo toàn tính toàn vẹn của các tệp tin dữ liệu nhị phân thực tế.
