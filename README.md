@@ -1,6 +1,6 @@
 # BÁO CÁO BÀI TẬP LỚN / BÀI TẬP NHÓM
-## HỌC PHẦN: ET3310 - MẬT MÃ HỌC VÀ AN TOÀN THÔNG TIN
-### ĐỀ TÀI: NGHIÊN CỨU, TRIỂN KHAI VÀ TỐI ƯU HÓA THUẬT TOÁN MÃ HÓA DÒNG RABBIT STREAM CIPHER (RFC 4503)
+## HỌC PHẦN: ET3310 - LÝ THUYẾT MẬT MÃ
+### ĐỀ TÀI: TRIỂN KHAI THUẬT TOÁN MÃ HÓA DÒNG RABBIT STREAM CIPHER (RFC 4503)
 
 ---
 
@@ -8,10 +8,8 @@
 
 | STT | Họ và Tên (Full Name) | MSSV (Student ID) | Vai trò & Đóng góp chính (Role & Contribution) |
 | :---: | :--- | :---: | :--- |
-| **01** | [Điền Họ và Tên Thành viên 1] | [Điền MSSV 1] | Trưởng nhóm: Thiết kế kiến trúc tổng thể, Core Rabbit Algorithm |
-| **02** | [Điền Họ và Tên Thành viên 2] | [Điền MSSV 2] | Tối ưu hóa vi kiến trúc (Bitwise, Loop Unrolling, ROL asm idiom) |
-| **03** | [Điền Họ và Tên Thành viên 3] | [Điền MSSV 3] | Xây dựng Module File I/O nhị phân an toàn và Giao diện CLI |
-| **04** | [Điền Họ và Tên Thành viên 4] | [Điền MSSV 4] | Xây dựng bộ kiểm thử RFC 4503 Test Vectors, Benchmarks & Báo cáo |
+| **01** | [ĐỖ  ĐỨC HUY | 20233441 
+
 
 ---
 
