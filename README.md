@@ -6,9 +6,9 @@
 
 ## 👥 THÀNH VIÊN NHÓM (GROUP MEMBERS)
 
-| STT | Họ và Tên (Full Name) | MSSV (Student ID) | Vai trò & Đóng góp chính (Role & Contribution) |
-| :---: | :--- | :---: | :--- |
-| **01** | [ĐỖ  ĐỨC HUY | 20233441 
+| STT | Họ và Tên (Full Name) | MSSV (Student ID) |
+| :---: | :--- | :---: |
+| **01** | ĐỖ  ĐỨC HUY | 20233441 |
 
 
 ---
