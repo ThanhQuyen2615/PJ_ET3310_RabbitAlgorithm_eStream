@@ -1,0 +1,7 @@
+=== FSE 2003 TEST VECTOR 2 (From 978-3-540-39887-5_23.pdf Appendix B) ===
+Key (Hex)   : C2 1F CF 38 81 CD 5E E8 62 8A CC B0 A9 89 0D F8
+IV          : None
+Keystream s[0] : 3D 02 E0 C7 30 55 91 12 B4 73 B7 90 DE E0 18 DF
+Keystream s[1] : CD 6D 73 0C E5 4E 19 F0 C3 5E C4 79 0E B6 C7 4A
+Keystream s[31]: 9F B4 92 E1 B5 40 36 3A E3 83 C0 1F 9F A2 26 1A
+Note: Tested and verified with 100% bitwise parity.

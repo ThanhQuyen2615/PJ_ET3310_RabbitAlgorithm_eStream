@@ -4,15 +4,27 @@
 #include <cstddef>
 #include <vector>
 
-// Algorithm parameter constants defined in RFC 4503
+// Algorithm parameter constants defined in RFC 4503 and FSE 2003
 constexpr size_t RABBIT_KEY_SIZE   = 16;  // 128-bit secret key = 16 bytes
 constexpr size_t RABBIT_IV_SIZE    = 8;   // 64-bit initialization vector = 8 bytes
 constexpr size_t RABBIT_BLOCK_SIZE = 16;  // 128-bit keystream output block = 16 bytes
 
 /**
+ * @brief Endianness format conventions supported by the Rabbit cipher.
+ * 
+ * - RFC4503: Standardized Internet RFC format (Big-Endian OS2IP / I2OSP octet ordering).
+ * - FSE2003_LE: Original FSE 2003 paper format (978-3-540-39887-5_23.pdf Appendix B,
+ *               Little-Endian word and byte ordering used on x86 architectures).
+ */
+enum class EndianMode {
+    RFC4503,      // RFC 4503 Standard (Default)
+    FSE2003_LE    // FSE 2003 Original Paper (PDF Appendix B)
+};
+
+/**
  * @brief Rabbit cipher internal 513-bit state structure.
  * 
- * [INTERNAL STATE SPECIFICATION (RFC 4503 Section 2.2)]
+ * [INTERNAL STATE SPECIFICATION (RFC 4503 Section 2.2 / FSE 2003 Section 2.1)]
  * The internal state consists of:
  *  - 8 state words X0..X7 (32-bit each = 256 bits)
  *  - 8 counter words C0..C7 (32-bit each = 256 bits)
@@ -26,22 +38,28 @@ struct RabbitState {
 };
 
 /**
- * @brief High-performance C++ class implementing the Rabbit Stream Cipher (RFC 4503).
+ * @brief High-performance C++ class implementing the Rabbit Stream Cipher.
  */
 class RabbitCipher {
 public:
-    RabbitCipher();
+    explicit RabbitCipher(EndianMode mode = EndianMode::RFC4503);
     ~RabbitCipher() = default;
 
     /**
-     * @brief Initializes cipher state using a 128-bit key (RFC 4503 Section 2.3).
+     * @brief Configure byte-ordering mode (RFC 4503 Big-Endian vs FSE 2003 Little-Endian).
+     */
+    void setEndianMode(EndianMode mode);
+    EndianMode getEndianMode() const;
+
+    /**
+     * @brief Initializes cipher state using a 128-bit key.
      * @param key 16-byte raw key array.
      */
     void setupKey(const uint8_t key[RABBIT_KEY_SIZE]);
     void setupKey(const std::vector<uint8_t>& key);
 
     /**
-     * @brief Mixes a 64-bit Initialization Vector (IV) into counter state (RFC 4503 Section 2.4).
+     * @brief Mixes a 64-bit Initialization Vector (IV) into counter state.
      * @param iv 8-byte raw IV array.
      */
     void setupIV(const uint8_t iv[RABBIT_IV_SIZE]);
@@ -49,30 +67,20 @@ public:
 
     /**
      * @brief Resets the working state back to the Master State (post-key-setup).
-     * 
-     * [OPTIMIZATION DETAIL]
-     * RFC 4503 specifies that after Key Setup, the state is saved as Master State.
-     * When re-initializing under a new IV, resetToMaster() restores this state directly,
-     * avoiding the overhead of re-computing the 4 key-expansion warmup rounds.
      */
     void resetToMaster();
 
     /**
-     * @brief Generates one 128-bit (16-byte) keystream block (RFC 4503 Section 2.7).
+     * @brief Generates one 128-bit (16-byte) keystream block.
      * @param output 16-byte destination buffer.
      */
     void generateBlock(uint8_t output[RABBIT_BLOCK_SIZE]);
 
     /**
-     * @brief Encrypts or decrypts arbitrary-length data stream (RFC 4503 Section 2.8).
+     * @brief Encrypts or decrypts arbitrary-length data stream.
      * @param input Pointer to source data buffer.
      * @param output Pointer to destination data buffer (can be identical to input for in-place).
      * @param length Number of bytes to process.
-     * 
-     * [OPTIMIZATION DETAIL]
-     * An internal 16-byte keystream buffer is maintained (`buffer_`). Data of any arbitrary
-     * size (e.g. 1 byte, 15 bytes, 1 MB) can be processed continuously across multiple calls
-     * without wasting unaligned keystream bytes.
      */
     void process(const uint8_t* input, uint8_t* output, size_t length);
     void process(std::vector<uint8_t>& data);
@@ -86,17 +94,13 @@ private:
     RabbitState masterState_; // Cached master state after Key Setup
     bool hasKey_;             // Key initialization flag
     bool hasIV_;              // IV initialization flag
+    EndianMode endianMode_;   // Endianness convention (RFC 4503 vs FSE 2003)
 
     uint8_t buffer_[RABBIT_BLOCK_SIZE]; // 16-byte keystream cache buffer
     size_t bufferPos_;                  // Read pointer in keystream cache
 
     /**
      * @brief Executes one iteration of the Counter System & Next-State function.
-     * 
-     * [OPTIMIZATION DETAIL]
-     * Combines counter ripple updates and non-linear G-function updates into a tightly
-     * coupled pipelined routine. All modulo-8 array index operations are replaced with
-     * bitwise masking `& 7` for maximum instruction-level throughput.
      */
     void nextState();
 };

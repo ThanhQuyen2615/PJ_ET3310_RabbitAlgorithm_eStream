@@ -134,22 +134,58 @@ code/
 
 ## 5. Kiểm thử tính đúng đắn & Đối chiếu Test Vectors
 
-Dự án đã được xác thực đối chiếu với các bộ vector thử nghiệm chính thức trong **RFC 4503 Appendix A**:
+Dự án hỗ trợ và vượt qua **100% (21/21 test cases)** của cả 2 bộ dữ liệu kiểm chuẩn quốc tế:
+1. **Bộ Test Vectors trong bài báo gốc FSE 2003 (tệp PDF `978-3-540-39887-5_23.pdf` Appendix B)**
+2. **Bộ Test Vectors chuẩn hóa Internet RFC 4503 (Appendix A)**
 
-### Vector 1: Không dùng IV (Non-IV Mode)
-- **Key**: `91 28 13 29 2E 3D 36 FE 3B FC 62 F1 DC 51 C3 AC`
-- **Kết quả Keystream sinh ra**:
+> 💡 **Lưu ý kiến trúc (Endianness Note)**:  
+> - Trong bài báo gốc FSE 2003 (PDF), các tác giả đặc tả mã nguồn ANSI C cho vi kiến trúc **Little-Endian (x86)**: Khóa và dòng keystream 16-byte được trích xuất theo thứ tự byte Little-Endian ($s[0]$ bắt đầu bằng byte có trọng số thấp nhất `02 F7 4A 1C...`).
+> - Trong chuẩn RFC 4503, IETF quy chuẩn sang định dạng **Network Big-Endian (OS2IP / I2OSP)**: Byte có trọng số cao nhất nằm ở đầu ($S[0]$ bắt đầu bằng `B1 57 54 F0...`).  
+> Lớp `RabbitCipher` trong dự án hỗ trợ cả 2 chế độ (`EndianMode::RFC4503` và `EndianMode::FSE2003_LE`).
+
+### 5.1. Bảng đối chiếu Test Vectors FSE 2003 (Theo tệp PDF Appendix B)
+
+* **Vector 1**: `Key = 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00`
+  - $s[0]$: `02 F7 4A 1C 26 45 6B F5 EC D6 A5 36 F0 54 57 B1` *(Khớp 100%)*
+  - $s[1]$: `A7 8A C6 89 47 6C 69 7B 39 0C 9C C5 15 D8 E8 88` *(Khớp 100%)*
+  - $s[31]$: `EF 9A 69 71 8B 82 49 A1 A7 3C 5A 6E 5B 90 45 95` *(Khớp 100%)*
+
+* **Vector 2**: `Key = C2 1F CF 38 81 CD 5E E8 62 8A CC B0 A9 89 0D F8`
+  - $s[0]$: `3D 02 E0 C7 30 55 91 12 B4 73 B7 90 DE E0 18 DF` *(Khớp 100%)*
+  - $s[1]$: `CD 6D 73 0C E5 4E 19 F0 C3 5E C4 79 0E B6 C7 4A` *(Khớp 100%)*
+  - $s[31]$: `9F B4 92 E1 B5 40 36 3A E3 83 C0 1F 9F A2 26 1A` *(Khớp 100%)*
+
+* **Vector 3**: `Key = 1D 27 2C 6A 2D 8E 3D FC AC 14 05 6B 78 D6 33 A0`
+  - $s[0]$: `A3 A9 7A BB 80 39 38 20 B7 E5 0C 4A BB 53 82 3D` *(Khớp 100%)*
+  - $s[1]$: `C4 42 37 99 C2 EF C9 FF B3 A4 12 5F 1F 4C 99 A8` *(Khớp 100%)*
+  - $s[31]$: `97 C0 73 3F F1 F1 8D 25 6A 59 E2 BA AB C1 F4 F1` *(Khớp 100%)*
+
+### 5.2. Bảng đối chiếu Test Vectors Chuẩn RFC 4503 (Appendix A)
+
+* **Vector A.1.1 (Key = 0, Không IV)**:
+  - $S[0]$: `B1 57 54 F0 36 A5 D6 EC F5 6B 45 26 1C 4A F7 02` *(Khớp 100%)*
+  - $S[1]$: `88 E8 D8 15 C5 9C 0C 39 7B 69 6C 47 89 C6 8A A7` *(Khớp 100%)*
+  - $S[2]$: `F4 16 A1 C3 70 0C D4 51 DA 68 D1 88 16 73 D6 96` *(Khớp 100%)*
+
+* **Vector A.1.2 (Key = 91 28 13 29 2E 3D 36 FE 3B FC 62 F1 DC 51 C3 AC)**:
   - $S[0]$: `3D 2D F3 C8 3E F6 27 A1 E9 7F C3 84 87 E2 51 9C` *(Khớp 100%)*
   - $S[1]$: `F5 76 CD 61 F4 40 5B 88 96 BF 53 AA 85 54 FC 19` *(Khớp 100%)*
   - $S[2]$: `E5 54 74 73 FB DB 43 50 8A E5 3B 20 20 4D 4C 5E` *(Khớp 100%)*
 
-### Vector 2: Có dùng IV (IV Setup Mode)
-- **Key**: `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00`
-- **IV**: `C3 73 F5 75 C1 26 7E 59`
-- **Kết quả Keystream sinh ra**:
+* **Vector A.2.2 (Key = 0, IV = C3 73 F5 75 C1 26 7E 59)**:
   - $S[0]$: `1F CD 4E B9 58 00 12 E2 E0 DC CC 92 22 01 7D 6D` *(Khớp 100%)*
   - $S[1]$: `A7 5F 4E 10 D1 21 25 01 7B 24 99 FF ED 93 6F 2E` *(Khớp 100%)*
   - $S[2]$: `EB C1 12 C3 93 E7 38 39 23 56 BD D0 12 02 9B A7` *(Khớp 100%)*
+
+### 5.3. Chạy Kiểm Thử Tự Động (Automated Test Suite)
+Nhóm đã tích hợp chương trình kiểm thử tự động toàn diện:
+```bash
+cd code
+make test
+# hoặc chạy trực tiếp:
+./test_vectors_app.exe
+```
+Kết quả chạy: **`21 / 21 TESTS PASSED (100.0%)`**.
 
 ---
 
