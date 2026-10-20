@@ -1,5 +1,6 @@
 # Prerequisites
 *.d
+TASKS.md
 
 # Compiled Object files
 *.slo
@@ -30,9 +31,7 @@
 *.exe
 *.out
 *.app
-encrypt_app
-decrypt_app
-test_rabbit
+*_app
 
 # Output & Temporary test files
 code/output/*
