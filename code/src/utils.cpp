@@ -7,18 +7,11 @@
 namespace Utils {
 
     uint32_t rotl32(uint32_t value, unsigned int shift) {
-        // [OPTIMIZATION: Mask shift amount with 31]
-        // In x86/ARM assembly, rotation counts modulo 32 are standard.
-        // `shift &= 31` prevents undefined behavior in C++ when shift >= 32.
+        // Shifting by 32 is undefined in C++, so keep shift in 0..31.
         shift &= 31;
         if (shift == 0) {
             return value;
         }
-
-        // [OPTIMIZATION: Compiler Idiom Recognition]
-        // This exact expression `(value << shift) | (value >> (32 - shift))` is recognized
-        // by GCC, Clang, and MSVC optimizers (-O2 / -O3) and translated into a single
-        // hardware rotation instruction (`rol` on x86, `ror` on ARM), executing in 1 cycle.
         return (value << shift) | (value >> (32 - shift));
     }
 
@@ -31,30 +24,18 @@ namespace Utils {
     }
 
     uint32_t gFunc(uint32_t u, uint32_t v) {
-        // [OPTIMIZATION: Natural Modulo 2^32 Arithmetic]
-        // In RFC 4503: square(u + v) = ((u + v mod WORDSIZE) * (u + v mod WORDSIZE)).
-        // Since `u` and `v` are `uint32_t`, `(u + v)` wraps modulo 2^32 natively in hardware
-        // at register level, requiring zero additional modulo or branch instructions.
+        // u + v wraps mod 2^32; widen to 64 bits so the square does not overflow.
         uint64_t sum = static_cast<uint32_t>(u + v);
-
-        // [OPTIMIZATION: 64-bit Multiplication]
-        // Squaring a 32-bit unsigned integer produces at most a 64-bit integer (2^64 - 2^33 + 1).
-        // By casting to uint64_t before multiplying, we compute the full exact square without
-        // 64-bit overflow or precision loss.
         uint64_t square = sum * sum;
 
-        // [OPTIMIZATION: LSW XOR MSW Extraction]
-        // LSW is `square & 0xFFFFFFFF` (implicit in cast to uint32_t).
-        // MSW is `square >> 32`.
-        // XORing them collapses 64 bits of non-linear diffusion down to 32 bits using 2 opcodes:
-        // `shr` (shift right 32) and `xor` (bitwise exclusive OR).
+        // Low 32 bits XOR high 32 bits.
         return static_cast<uint32_t>(square ^ (square >> 32));
     }
 
     bool hexToBytes(const std::string& hexStr, std::vector<uint8_t>& outBytes) {
         outBytes.clear();
 
-        // Sanitize string: skip optional '0x' prefix, spaces, colons, hyphens
+        // Strip "0x" prefix and separators, keep only hex digits.
         std::string cleaned;
         cleaned.reserve(hexStr.size());
 
@@ -69,20 +50,18 @@ namespace Utils {
                 continue;
             }
             if (!std::isxdigit(static_cast<unsigned char>(c))) {
-                return false; // Invalid hex character encountered
+                return false;
             }
             cleaned.push_back(c);
         }
 
-        // Hex string must consist of pairs of nibbles (even number of characters)
+        // Two hex digits per byte.
         if (cleaned.empty() || cleaned.size() % 2 != 0) {
             return false;
         }
 
-        // Pre-allocate destination memory to prevent repeated dynamic reallocations
         outBytes.reserve(cleaned.size() / 2);
 
-        // [OPTIMIZATION: Fast branchless ASCII nibble to integer conversion]
         auto hexCharToVal = [](char ch) -> uint8_t {
             if (ch >= '0' && ch <= '9') return static_cast<uint8_t>(ch - '0');
             if (ch >= 'a' && ch <= 'f') return static_cast<uint8_t>(ch - 'a' + 10);
@@ -104,7 +83,6 @@ namespace Utils {
             return "";
         }
 
-        // [OPTIMIZATION: Pre-calculate string size and format directly]
         std::string hexStr;
         hexStr.resize(length * 2);
 

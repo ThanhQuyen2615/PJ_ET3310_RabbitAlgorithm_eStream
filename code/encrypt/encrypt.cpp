@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Fall back to positional argument parsing if flags were not used
+    // No flags: use positional arguments
     if (!parsedByFlags) {
         if (argc >= 4) {
             inputFile  = argv[1];
@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
         cipher.setupIV(ivBytes);
     }
 
-    // Execute encryption and measure execution time
+    // Encrypt and time it
     auto startTime = std::chrono::high_resolution_clock::now();
     cipher.process(data);
     auto endTime = std::chrono::high_resolution_clock::now();

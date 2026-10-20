@@ -7,7 +7,7 @@
 #include <string>
 #include <cstring>
 
-// Helper to compare actual vs expected bytes and print result
+// Compare a 16-byte block with the expected value and print PASS/FAIL.
 static bool verifyBlock(const std::string& testName,
                         const uint8_t actual[16],
                         const uint8_t expected[16]) {
