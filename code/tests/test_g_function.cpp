@@ -8,7 +8,7 @@ int main() {
     int passed = 0;
     int failed = 0;
 
-    // Test 1: u = 0, v = 0
+    // Test 1: u = 0, v = 0 -> ket qua 0
     {
         uint32_t actual = Utils::gFunc(0, 0);
         uint32_t expected = 0;

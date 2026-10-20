@@ -7,7 +7,7 @@ namespace FileIO {
     bool readBinaryFile(const std::string& filePath, std::vector<uint8_t>& buffer) {
         buffer.clear();
 
-        // Binary mode so bytes are not changed; open at the end to get the size.
+        // Mo o che do nhi phan de byte khong bi doi; mo o cuoi file de lay kich thuoc.
         std::ifstream file(filePath, std::ios::binary | std::ios::ate);
         if (!file.is_open()) {
             std::cerr << "[FileIO Error] Failed to open file for reading: " << filePath << "\n";
@@ -23,10 +23,10 @@ namespace FileIO {
         file.seekg(0, std::ios::beg);
 
         if (fileSize == 0) {
-            return true; // Empty file
+            return true; // File rong
         }
 
-        // Allocate once and read everything in one call.
+        // Cap phat mot lan va doc het trong mot lan goi.
         buffer.resize(static_cast<size_t>(fileSize));
         if (!file.read(reinterpret_cast<char*>(buffer.data()), fileSize)) {
             std::cerr << "[FileIO Error] Failed to read stream data from file: " << filePath << "\n";
@@ -38,7 +38,7 @@ namespace FileIO {
     }
 
     bool writeBinaryFile(const std::string& filePath, const std::vector<uint8_t>& data) {
-        // Binary mode so newline bytes are written unchanged.
+        // Che do nhi phan de ky tu xuong dong duoc ghi nguyen ven.
         std::ofstream file(filePath, std::ios::binary | std::ios::trunc);
         if (!file.is_open()) {
             std::cerr << "[FileIO Error] Failed to open file for writing: " << filePath << "\n";

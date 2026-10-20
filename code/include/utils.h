@@ -7,22 +7,22 @@
 
 namespace Utils {
 
-    // Rotate a 32-bit value left / right by `shift` bits.
+    // Quay trai / phai so 32 bit di `shift` bit.
     uint32_t rotl32(uint32_t value, unsigned int shift);
     uint32_t rotr32(uint32_t value, unsigned int shift);
 
-    // Rabbit g-function: square (u + v) to 64 bits, then XOR its high and low halves.
+    // Ham g cua Rabbit: binh phuong (u + v) thanh so 64 bit, roi XOR nua cao voi nua thap.
     uint32_t gFunc(uint32_t u, uint32_t v);
 
-    // Parse a hex string into bytes. Accepts "0x" prefix and spaces, ':', '-', ','.
-    // Returns false if a character is not hex or the digit count is odd.
+    // Chuyen chuoi hex thanh mang byte. Chap nhan tien to "0x" va dau cach, ':', '-', ','.
+    // Tra ve false neu co ky tu khong phai hex hoac so chu so la so le.
     bool hexToBytes(const std::string& hexStr, std::vector<uint8_t>& outBytes);
 
-    // Convert bytes to a hex string.
+    // Chuyen mang byte thanh chuoi hex.
     std::string bytesToHex(const uint8_t* data, size_t length, bool uppercase = true);
     std::string bytesToHex(const std::vector<uint8_t>& bytes, bool uppercase = true);
 
-    // Print "label: AA BB CC ..." to stdout.
+    // In "label: AA BB CC ..." ra man hinh.
     void printHex(const std::string& label, const uint8_t* data, size_t length);
     void printHex(const std::string& label, const std::vector<uint8_t>& bytes);
 

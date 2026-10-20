@@ -7,7 +7,7 @@
 namespace Utils {
 
     uint32_t rotl32(uint32_t value, unsigned int shift) {
-        // Shifting by 32 is undefined in C++, so keep shift in 0..31.
+        // Dich 32 bit la hanh vi khong xac dinh trong C++, nen gioi han shift trong 0..31.
         shift &= 31;
         if (shift == 0) {
             return value;
@@ -24,18 +24,18 @@ namespace Utils {
     }
 
     uint32_t gFunc(uint32_t u, uint32_t v) {
-        // u + v wraps mod 2^32; widen to 64 bits so the square does not overflow.
+        // u + v tu lay mod 2^32; doi sang 64 bit de binh phuong khong bi tran.
         uint64_t sum = static_cast<uint32_t>(u + v);
         uint64_t square = sum * sum;
 
-        // Low 32 bits XOR high 32 bits.
+        // 32 bit thap XOR 32 bit cao.
         return static_cast<uint32_t>(square ^ (square >> 32));
     }
 
     bool hexToBytes(const std::string& hexStr, std::vector<uint8_t>& outBytes) {
         outBytes.clear();
 
-        // Strip "0x" prefix and separators, keep only hex digits.
+        // Bo tien to "0x" va dau phan cach, chi giu chu so hex.
         std::string cleaned;
         cleaned.reserve(hexStr.size());
 
@@ -55,7 +55,7 @@ namespace Utils {
             cleaned.push_back(c);
         }
 
-        // Two hex digits per byte.
+        // Moi byte gom 2 chu so hex.
         if (cleaned.empty() || cleaned.size() % 2 != 0) {
             return false;
         }

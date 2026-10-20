@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     std::string inputFile;
     std::string outputFile;
 
-    // Check for help flags
+    // Kiem tra co tro giup (-h, --help)
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "-h" || arg == "--help" || arg == "/?") {
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Parse named flags
+    // Doc cac tham so dang co (-k, -iv, -i, -o)
     bool parsedByFlags = false;
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // No flags: use positional arguments
+    // Khong dung co: doc tham so theo vi tri
     if (!parsedByFlags) {
         if (argc >= 4) {
             inputFile  = argv[1];
@@ -82,20 +82,20 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Validate parameter completeness
+    // Kiem tra da du tham so chua
     if (inputFile.empty() || outputFile.empty() || keyHex.empty()) {
         std::cerr << "[Error] Please provide Input file, Output file, and Key Hex string!\n\n";
         printUsage(argv[0]);
         return 1;
     }
 
-    // Verify input file existence
+    // Kiem tra file dau vao co ton tai khong
     if (!FileIO::fileExists(inputFile)) {
         std::cerr << "[Error] Input file not found: " << inputFile << "\n";
         return 1;
     }
 
-    // Parse and validate 128-bit key (16 bytes)
+    // Doc va kiem tra khoa 128 bit (16 byte)
     std::vector<uint8_t> keyBytes;
     if (!Utils::hexToBytes(keyHex, keyBytes) || keyBytes.size() != RABBIT_KEY_SIZE) {
         std::cerr << "[Error] Invalid Key! Key must be a 32-character Hex string (16 bytes = 128 bits).\n";
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Parse and validate 64-bit IV (8 bytes) if provided
+    // Doc va kiem tra IV 64 bit (8 byte) neu co
     std::vector<uint8_t> ivBytes;
     bool useIV = false;
     if (!ivHex.empty()) {
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
     }
     std::cout << "--------------------------------------------------------\n";
 
-    // Read binary encrypted file into memory
+    // Doc file da ma hoa vao bo nho
     std::vector<uint8_t> data;
     if (!FileIO::readBinaryFile(inputFile, data)) {
         std::cerr << "[Error] Failed to read encrypted input file!\n";
@@ -137,14 +137,14 @@ int main(int argc, char* argv[]) {
     size_t fileSize = data.size();
     std::cout << "-> Successfully read " << fileSize << " bytes from " << inputFile << "\n";
 
-    // Initialize Rabbit cipher instance
+    // Khoi tao bo ma Rabbit
     RabbitCipher cipher;
     cipher.setupKey(keyBytes);
     if (useIV) {
         cipher.setupIV(ivBytes);
     }
 
-    // Decrypt (same XOR as encryption) and time it
+    // Giai ma (cung phep XOR nhu ma hoa) va do thoi gian
     auto startTime = std::chrono::high_resolution_clock::now();
     cipher.process(data);
     auto endTime = std::chrono::high_resolution_clock::now();
@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
     auto durationUs = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
     double durationMs = durationUs / 1000.0;
 
-    // Write recovered plaintext to destination
+    // Ghi ban ro da khoi phuc ra file
     if (!FileIO::writeBinaryFile(outputFile, data)) {
         std::cerr << "[Error] Failed to write decrypted output file!\n";
         return 1;

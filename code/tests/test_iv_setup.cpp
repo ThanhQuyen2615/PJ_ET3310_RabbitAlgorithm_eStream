@@ -6,7 +6,7 @@
 #include <vector>
 
 int main() {
-    // RFC 4503 Appendix A.2 test vector
+    // Test vector trong RFC 4503 Phu luc A.2
     const std::vector<uint8_t> key(16, 0x00);
     const std::vector<uint8_t> iv = {0xC3, 0x73, 0xF5, 0x75, 0xC1, 0x26, 0x7E, 0x59};
     const std::vector<uint8_t> expected = {

@@ -6,16 +6,16 @@
 
 namespace FileIO {
 
-    // Read a whole file into `buffer`. Returns false on error.
+    // Doc toan bo file vao `buffer`. Tra ve false neu loi.
     bool readBinaryFile(const std::string& filePath, std::vector<uint8_t>& buffer);
 
-    // Write `data` to a file, overwriting it. Returns false on error.
+    // Ghi `data` ra file (ghi de). Tra ve false neu loi.
     bool writeBinaryFile(const std::string& filePath, const std::vector<uint8_t>& data);
 
-    // File size in bytes, or -1 if the file cannot be opened.
+    // Kich thuoc file (byte), hoac -1 neu khong mo duoc file.
     int64_t getFileSize(const std::string& filePath);
 
-    // True if the file exists and can be opened for reading.
+    // True neu file ton tai va mo duoc de doc.
     bool fileExists(const std::string& filePath);
 
 } // namespace FileIO

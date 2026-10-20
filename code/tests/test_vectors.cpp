@@ -7,7 +7,7 @@
 #include <string>
 #include <cstring>
 
-// Compare a 16-byte block with the expected value and print PASS/FAIL.
+// So sanh khoi 16 byte voi gia tri mong doi va in PASS/FAIL.
 static bool verifyBlock(const std::string& testName,
                         const uint8_t actual[16],
                         const uint8_t expected[16]) {
@@ -32,7 +32,7 @@ int main() {
     int passedTests = 0;
 
     // =========================================================================
-    // SUITE 1: FSE 2003 Test Vectors (from PDF 978-3-540-39887-5_23.pdf App B)
+    // BO TEST 1: Test vector FSE 2003 (PDF 978-3-540-39887-5_23.pdf, Phu luc B)
     // =========================================================================
     std::cout << "--------------------------------------------------------------------\n";
     std::cout << " SUITE 1: FSE 2003 Original Paper Vectors (Little-Endian / PDF App B)\n";
@@ -117,13 +117,13 @@ int main() {
     }
 
     // =========================================================================
-    // SUITE 2: RFC 4503 Test Vectors (Appendix A: Conformance Testing)
+    // BO TEST 2: Test vector RFC 4503 (Phu luc A)
     // =========================================================================
     std::cout << "\n--------------------------------------------------------------------\n";
     std::cout << " SUITE 2: RFC 4503 Standard Vectors (Big-Endian OS2IP / Appendix A)\n";
     std::cout << "--------------------------------------------------------------------\n";
 
-    // --- Vector A.1.1 (Key = 0, No IV) ---
+    // --- Vector A.1.1 (Key = 0, khong IV) ---
     {
         uint8_t key[16] = {0};
         RabbitCipher cipher(EndianMode::RFC4503);
@@ -147,7 +147,7 @@ int main() {
         if (verifyBlock("RFC 4503 A.1.1 (Key=0) S[2]", block, exp_s2)) passedTests++;
     }
 
-    // --- Vector A.1.2 (Key = 91 28 13 29..., No IV) ---
+    // --- Vector A.1.2 (Key = 91 28 13 29..., khong IV) ---
     {
         uint8_t key[16] = {0x91, 0x28, 0x13, 0x29, 0x2E, 0x3D, 0x36, 0xFE, 0x3B, 0xFC, 0x62, 0xF1, 0xDC, 0x51, 0xC3, 0xAC};
         RabbitCipher cipher(EndianMode::RFC4503);
@@ -224,7 +224,7 @@ int main() {
     }
 
     // =========================================================================
-    // SUMMARY
+    // TONG KET
     // =========================================================================
     std::cout << "\n====================================================================\n";
     std::cout << " TEST SUMMARY: " << passedTests << " / " << totalTests << " TESTS PASSED (";
