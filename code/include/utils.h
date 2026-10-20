@@ -7,23 +7,19 @@
 
 namespace Utils {
 
-    // Quay trai / phai so 32 bit di `shift` bit.
-    uint32_t rotl32(uint32_t value, unsigned int shift);
-    uint32_t rotr32(uint32_t value, unsigned int shift);
+    // Quay trai so 32 bit di n bit (1 <= n <= 31).
+    uint32_t rotl32(uint32_t value, int n);
 
     // Ham g cua Rabbit: binh phuong (u + v) thanh so 64 bit, roi XOR nua cao voi nua thap.
     uint32_t gFunc(uint32_t u, uint32_t v);
 
-    // Chuyen chuoi hex thanh mang byte. Chap nhan tien to "0x" va dau cach, ':', '-', ','.
-    // Tra ve false neu co ky tu khong phai hex hoac so chu so la so le.
-    bool hexToBytes(const std::string& hexStr, std::vector<uint8_t>& outBytes);
+    // Chuyen chuoi hex (vd "0A1B") thanh mang byte. Tra ve false neu chuoi khong hop le.
+    bool hexToBytes(const std::string& hex, std::vector<uint8_t>& bytes);
 
-    // Chuyen mang byte thanh chuoi hex.
-    std::string bytesToHex(const uint8_t* data, size_t length, bool uppercase = true);
-    std::string bytesToHex(const std::vector<uint8_t>& bytes, bool uppercase = true);
+    // Chuyen mang byte thanh chuoi hex (vd {0x0A, 0x1B} -> "0A1B").
+    std::string bytesToHex(const uint8_t* data, size_t length);
 
     // In "label: AA BB CC ..." ra man hinh.
     void printHex(const std::string& label, const uint8_t* data, size_t length);
-    void printHex(const std::string& label, const std::vector<uint8_t>& bytes);
 
 } // namespace Utils

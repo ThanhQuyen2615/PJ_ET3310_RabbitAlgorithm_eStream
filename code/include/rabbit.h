@@ -2,16 +2,13 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <vector>
+#include <ostream>
 
-constexpr size_t RABBIT_KEY_SIZE   = 16;  // Khoa 128 bit
-constexpr size_t RABBIT_IV_SIZE    = 8;   // IV 64 bit
-constexpr size_t RABBIT_BLOCK_SIZE = 16;  // Khoi keystream 128 bit
-
-// Thu tu byte khi nap khoa/IV va khi xuat keystream.
-enum class EndianMode {
-    RFC4503,      // RFC 4503, big-endian (mac dinh)
-    FSE2003_LE    // Bai bao goc FSE 2003, little-endian
+// Thu tu byte khi doi 16 byte khoa / 8 byte IV / 16 byte keystream <-> cac tu 32 bit.
+// Hai cach chi khac nhau o cach viet byte; trang thai ben trong giong het nhau.
+enum class ByteOrder {
+    RFC,   // RFC 4503: byte cao viet truoc (big-endian)
+    PDF    // Bai bao FSE 2003 (Phu luc A, B): byte thap viet truoc (little-endian)
 };
 
 // Trang thai trong: 8 tu trang thai + 8 bo dem + 1 bit nho = 513 bit.
@@ -22,45 +19,45 @@ struct RabbitState {
 };
 
 // Ma dong Rabbit. Ma hoa va giai ma la cung mot phep toan.
+// Thu tu goi: setupKey() -> setupIV() (khong bat buoc) -> process().
 class RabbitCipher {
 public:
-    explicit RabbitCipher(EndianMode mode = EndianMode::RFC4503);
-    ~RabbitCipher() = default;
+    explicit RabbitCipher(ByteOrder byteOrder = ByteOrder::RFC);
 
-    void setEndianMode(EndianMode mode);
-    EndianMode getEndianMode() const;
+    // Ghi tung buoc tinh toan vao `out` (vd mot file .txt). Chi ghi chi tiet
+    // `maxBlocks` khoi keystream dau tien de file log khong qua lon.
+    void setLog(std::ostream* out, int maxBlocks = 4);
 
-    // Nap khoa 16 byte. Phai goi dau tien.
-    void setupKey(const uint8_t key[RABBIT_KEY_SIZE]);
-    void setupKey(const std::vector<uint8_t>& key);
+    // Nap khoa 16 byte.
+    void setupKey(const uint8_t key[16]);
 
-    // Tron IV 8 byte vao trang thai da nap khoa (khong bat buoc).
-    void setupIV(const uint8_t iv[RABBIT_IV_SIZE]);
-    void setupIV(const std::vector<uint8_t>& iv);
-
-    // Quay ve trang thai ngay sau setupKey().
-    void resetToMaster();
+    // Tron IV 8 byte vao trang thai. Goi sau setupKey().
+    void setupIV(const uint8_t iv[8]);
 
     // Sinh khoi keystream 16 byte tiep theo.
-    void generateBlock(uint8_t output[RABBIT_BLOCK_SIZE]);
+    void generateBlock(uint8_t output[16]);
 
-    // XOR du lieu voi keystream. input va output co the la cung mot vung nho.
+    // XOR du lieu voi keystream. input va output co the la cung mot mang.
     void process(const uint8_t* input, uint8_t* output, size_t length);
-    void process(std::vector<uint8_t>& data);
-
-    bool isKeySet() const;
-    bool isIVSet() const;
 
 private:
-    RabbitState state_;       // Trang thai hien tai
-    RabbitState masterState_; // Trang thai luu lai sau setupKey()
-    bool hasKey_;
-    bool hasIV_;
-    EndianMode endianMode_;
+    ByteOrder order;
+    RabbitState state;          // Trang thai hien tai
+    RabbitState master;         // Trang thai luu lai sau setupKey(), setupIV() bat dau tu day
+    uint8_t keystream[16];      // Khoi keystream dang dung
+    int used = 16;              // So byte da dung trong keystream (16 = da dung het)
 
-    uint8_t buffer_[RABBIT_BLOCK_SIZE]; // Khoi keystream hien tai
-    size_t bufferPos_;                  // Vi tri byte chua dung tiep theo trong buffer_
+    std::ostream* log = nullptr; // Noi ghi log (nullptr = khong ghi)
+    int maxLogBlocks = 4;        // So khoi keystream dau tien duoc ghi chi tiet
+    int rounds = 0;              // So lan da chay next_state
+    int blocks = 0;              // So khoi keystream da sinh
 
     // Cap nhat bo dem va trang thai them mot vong.
     void nextState();
+
+    // Co dang ghi log chi tiet khong.
+    bool logging() const;
+
+    // Ghi X0..X7, C0..C7, carry vao log.
+    void logState() const;
 };

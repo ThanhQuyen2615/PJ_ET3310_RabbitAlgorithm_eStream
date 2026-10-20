@@ -5,168 +5,79 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <chrono>
-#include <iomanip>
+#include <ctime>
+#include <fstream>
 
-static void printUsage(const char* progName) {
-    std::cout << "========================================================\n";
-    std::cout << "   Rabbit Stream Cipher (RFC 4503) - ENCRYPTION CLI\n";
-    std::cout << "========================================================\n\n";
-    std::cout << "USAGE:\n";
-    std::cout << "  Option 1 (Using Flags):\n";
-    std::cout << "    " << progName << " -k <KEY_HEX> [-iv <IV_HEX>] -i <INPUT_FILE> -o <OUTPUT_FILE>\n\n";
-    std::cout << "  Option 2 (Positional Arguments):\n";
-    std::cout << "    " << progName << " <INPUT_FILE> <OUTPUT_FILE> <KEY_HEX> [IV_HEX]\n\n";
-    std::cout << "PARAMETERS:\n";
-    std::cout << "  - KEY_HEX    : 32 hex characters (128 bits = 16 bytes). Mandatory.\n";
-    std::cout << "  - IV_HEX     : 16 hex characters (64 bits = 8 bytes). Optional (omit for non-IV mode).\n";
-    std::cout << "  - INPUT_FILE : Path to plaintext file (text, pdf, image, binary, etc.).\n";
-    std::cout << "  - OUTPUT_FILE: Path to output ciphertext file.\n\n";
-    std::cout << "EXAMPLE:\n";
-    std::cout << "  " << progName << " -k 912813292E3D36FE3BFC62F1DC51C3AC -iv C373F575C1267E59 -i input/sample.txt -o output/sample.enc\n";
-    std::cout << "========================================================\n";
-}
-
+// Cach dung: encrypt_app <file_vao> <file_ra> <khoa_hex> [iv_hex]
+// Tung buoc tinh toan duoc ghi vao file <file_ra>.log.txt, khong in ra man hinh.
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        printUsage(argv[0]);
+
+    // Kiem tra so luong tham so dau vao
+    if (argc < 4) {
+        std::cout << "Usage:   " << argv[0] << " <input_file> <output_file> <key_hex> [iv_hex]\n";
+        std::cout << "  key_hex: 32 hex characters (16 bytes), iv_hex: 16 hex characters (8 bytes)\n";
+        std::cout << "Example: " << argv[0] << " input/sample.txt output/sample.enc "
+                  << "912813292E3D36FE3BFC62F1DC51C3AC C373F575C1267E59\n";
         return 1;
     }
-
-    std::string keyHex;
-    std::string ivHex;
-    std::string inputFile;
-    std::string outputFile;
-
-    // Kiem tra co tro giup (-h, --help)
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "-h" || arg == "--help" || arg == "/?") {
-            printUsage(argv[0]);
-            return 0;
-        }
-    }
-
-    // Doc cac tham so dang co (-k, -iv, -i, -o)
-    bool parsedByFlags = false;
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if ((arg == "-k" || arg == "--key") && i + 1 < argc) {
-            keyHex = argv[++i];
-            parsedByFlags = true;
-        } else if ((arg == "-iv" || arg == "--iv") && i + 1 < argc) {
-            ivHex = argv[++i];
-            parsedByFlags = true;
-        } else if ((arg == "-i" || arg == "-in" || arg == "--input") && i + 1 < argc) {
-            inputFile = argv[++i];
-            parsedByFlags = true;
-        } else if ((arg == "-o" || arg == "-out" || arg == "--output") && i + 1 < argc) {
-            outputFile = argv[++i];
-            parsedByFlags = true;
-        }
-    }
-
-    // Khong dung co: doc tham so theo vi tri
-    if (!parsedByFlags) {
-        if (argc >= 4) {
-            inputFile  = argv[1];
-            outputFile = argv[2];
-            keyHex     = argv[3];
-            if (argc >= 5) {
-                ivHex = argv[4];
-            }
-        } else {
-            std::cerr << "[Error] Missing required arguments!\n\n";
-            printUsage(argv[0]);
-            return 1;
-        }
-    }
-
-    // Kiem tra da du tham so chua
-    if (inputFile.empty() || outputFile.empty() || keyHex.empty()) {
-        std::cerr << "[Error] Please provide Input file, Output file, and Key Hex string!\n\n";
-        printUsage(argv[0]);
-        return 1;
-    }
-
-    // Kiem tra file dau vao co ton tai khong
-    if (!FileIO::fileExists(inputFile)) {
-        std::cerr << "[Error] Input file not found: " << inputFile << "\n";
-        return 1;
-    }
+    std::string inputFile  = argv[1];
+    std::string outputFile = argv[2];
 
     // Doc va kiem tra khoa 128 bit (16 byte)
-    std::vector<uint8_t> keyBytes;
-    if (!Utils::hexToBytes(keyHex, keyBytes) || keyBytes.size() != RABBIT_KEY_SIZE) {
-        std::cerr << "[Error] Invalid Key! Key must be a 32-character Hex string (16 bytes = 128 bits).\n";
-        std::cerr << "        Actual bytes parsed: " << keyBytes.size() << " bytes.\n";
+    std::vector<uint8_t> key;
+    if (!Utils::hexToBytes(argv[3], key) || key.size() != 16) {
+        std::cerr << "[Error] Key must be 32 hex characters (16 bytes).\n";
         return 1;
     }
 
     // Doc va kiem tra IV 64 bit (8 byte) neu co
-    std::vector<uint8_t> ivBytes;
-    bool useIV = false;
-    if (!ivHex.empty()) {
-        if (!Utils::hexToBytes(ivHex, ivBytes) || ivBytes.size() != RABBIT_IV_SIZE) {
-            std::cerr << "[Error] Invalid IV! IV must be a 16-character Hex string (8 bytes = 64 bits).\n";
-            std::cerr << "        Actual bytes parsed: " << ivBytes.size() << " bytes.\n";
-            return 1;
-        }
-        useIV = true;
+    std::vector<uint8_t> iv;
+    if (argc >= 5 && (!Utils::hexToBytes(argv[4], iv) || iv.size() != 8)) {
+        std::cerr << "[Error] IV must be 16 hex characters (8 bytes).\n";
+        return 1;
     }
-
-    std::cout << "--------------------------------------------------------\n";
-    std::cout << "STARTING ENCRYPTION PROCESS\n";
-    std::cout << "  - Input File  : " << inputFile << "\n";
-    std::cout << "  - Output File : " << outputFile << "\n";
-    std::cout << "  - Key (Hex)   : " << Utils::bytesToHex(keyBytes) << "\n";
-    if (useIV) {
-        std::cout << "  - IV (Hex)    : " << Utils::bytesToHex(ivBytes) << "\n";
-    } else {
-        std::cout << "  - IV          : None (RFC 4503 Non-IV Mode)\n";
-    }
-    std::cout << "--------------------------------------------------------\n";
 
     // Doc file dau vao vao bo nho
     std::vector<uint8_t> data;
     if (!FileIO::readBinaryFile(inputFile, data)) {
-        std::cerr << "[Error] Failed to read input file!\n";
+        std::cerr << "[Error] Cannot read input file: " << inputFile << "\n";
         return 1;
     }
 
-    size_t fileSize = data.size();
-    std::cout << "-> Successfully read " << fileSize << " bytes from " << inputFile << "\n";
+    // Mo file log
+    std::string logPath = outputFile + ".log.txt";
+    std::ofstream logFile(logPath);
+    logFile << "RABBIT - MA HOA\n";
+    logFile << "File vao : " << inputFile << " (" << data.size() << " byte)\n";
+    logFile << "File ra  : " << outputFile << "\n";
+    logFile << "Khoa     : " << argv[3] << "\n";
+    logFile << "IV       : " << (iv.empty() ? "khong dung IV" : argv[4]) << "\n";
 
-    // Khoi tao bo ma Rabbit
+    // Khoi tao bo ma Rabbit (ghi log 4 khoi keystream dau tien)
     RabbitCipher cipher;
-    cipher.setupKey(keyBytes);
-    if (useIV) {
-        cipher.setupIV(ivBytes);
+    cipher.setLog(&logFile);
+    cipher.setupKey(key.data());
+    if (!iv.empty()) {
+        cipher.setupIV(iv.data());
     }
 
     // Ma hoa va do thoi gian
-    auto startTime = std::chrono::high_resolution_clock::now();
-    cipher.process(data);
-    auto endTime = std::chrono::high_resolution_clock::now();
-
-    auto durationUs = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-    double durationMs = durationUs / 1000.0;
+    std::clock_t start = std::clock();
+    cipher.process(data.data(), data.data(), data.size());
+    double ms = 1000.0 * (std::clock() - start) / CLOCKS_PER_SEC;
 
     // Ghi ban ma ra file
     if (!FileIO::writeBinaryFile(outputFile, data)) {
-        std::cerr << "[Error] Failed to write encrypted output file!\n";
+        std::cerr << "[Error] Cannot write output file: " << outputFile << "\n";
         return 1;
     }
 
-    std::cout << "-> Encryption completed. Saved to: " << outputFile << "\n";
-    std::cout << "--------------------------------------------------------\n";
-    std::cout << "PERFORMANCE BENCHMARK:\n";
-    std::cout << "  - Execution Time : " << std::fixed << std::setprecision(3) << durationMs << " ms (" << durationUs << " us)\n";
-    if (durationMs > 0.0 && fileSize > 0) {
-        double throughputMBs = (static_cast<double>(fileSize) / (1024.0 * 1024.0)) / (durationMs / 1000.0);
-        std::cout << "  - Throughput     : " << std::fixed << std::setprecision(2) << throughputMBs << " MB/s\n";
-    }
-    std::cout << "========================================================\n";
+    logFile << "\nTONG KET: da ma hoa " << data.size() << " byte = " << (data.size() + 15) / 16
+            << " khoi keystream, thoi gian " << ms << " ms\n";
 
+    std::cout << "Encrypted " << data.size() << " bytes: " << inputFile << " -> " << outputFile << "\n";
+    std::cout << "IV: " << (iv.empty() ? "none" : Utils::bytesToHex(iv.data(), iv.size())) << "\n";
+    std::cout << "Time: " << ms << " ms\n";
+    std::cout << "Log: " << logPath << "\n";
     return 0;
 }
