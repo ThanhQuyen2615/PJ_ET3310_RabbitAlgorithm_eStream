@@ -126,12 +126,11 @@ code/
 | Kỹ thuật tối ưu | Triển khai trong dự án | So sánh với mã nguồn cơ bản |
 | :--- | :--- | :--- |
 | **Bitwise Rotation Idiom** | `(x << n) \| (x >> (32 - n))` trong `Utils::rotl32` | Trình biên dịch dịch thẳng thành 1 lệnh máy `rol` (x86) thay vì phép dịch chia modulo. |
-| **Masking thay cho Modulo** | `(j & 7)` thay cho `(j % 8)`; `(j & 1)` thay cho `(j % 2)` | Giảm từ 15-20 chu kỳ máy của phép chia số nguyên xuống còn đúng 1 chu kỳ của lệnh `and`. |
 | **Carry Ripple không chia** | `temp = C[j] + A[j] + carry; carry = temp >> 32;` | Tính toán trong thanh ghi 64-bit `uint64_t`, lấy cờ nhớ bằng phép dịch `>> 32` không cần lệnh `div`. |
 | **Bình phương phi tuyến 64-bit** | `uint64_t sq = sum * sum; sq ^ (sq >> 32)` | Bình phương không tràn, gập 64-bit về 32-bit chỉ tốn 2 lệnh `shr` và `xor`. |
-| **Bộ đệm Keystream 16-byte** | Cache `buffer_[16]` trong `RabbitCipher` | Cho phép mã hóa dữ liệu độ dài byte tùy ý mà không lãng phí byte thừa, không cấp phát heap liên tục. |
-| **Zero-Allocation File I/O** | `file.tellg()` + `buffer.resize(size)` + đọc 1 khối | Tránh re-allocation nhiều lần khi đọc tệp dung lượng lớn, đạt tốc độ xấp xỉ tốc độ đọc đĩa. |
-| **Bộ nhớ Master State** | Lưu `masterState_` sau `setupKey()` | Nạp IV mới chỉ tốn 4 vòng lặp khởi động, không cần tính lại quá trình giải mã khóa ban đầu. |
+| **Bộ đệm Keystream 16-byte** | Cache `keystream[16]` trong `RabbitCipher` | Cho phép mã hóa dữ liệu độ dài byte tùy ý mà không lãng phí byte thừa, không cấp phát heap liên tục. |
+| **Zero-Allocation File I/O** | `file.tellg()` + `data.resize(size)` + đọc 1 khối | Tránh re-allocation nhiều lần khi đọc tệp dung lượng lớn, đạt tốc độ xấp xỉ tốc độ đọc đĩa. |
+| **Bộ nhớ Master State** | Lưu `master` sau `setupKey()` | Nạp IV mới chỉ tốn 4 vòng lặp khởi động, không cần tính lại quá trình giải mã khóa ban đầu. |
 
 ---
 
@@ -144,7 +143,12 @@ Dự án hỗ trợ và vượt qua **100% (21/21 test cases)** của cả 2 b�
 > 💡 **Lưu ý kiến trúc (Endianness Note)**:  
 > - Trong bài báo gốc FSE 2003 (PDF), các tác giả đặc tả mã nguồn ANSI C cho vi kiến trúc **Little-Endian (x86)**: Khóa và dòng keystream 16-byte được trích xuất theo thứ tự byte Little-Endian ($s[0]$ bắt đầu bằng byte có trọng số thấp nhất `02 F7 4A 1C...`).
 > - Trong chuẩn RFC 4503, IETF quy chuẩn sang định dạng **Network Big-Endian (OS2IP / I2OSP)**: Byte có trọng số cao nhất nằm ở đầu ($S[0]$ bắt đầu bằng `B1 57 54 F0...`).  
-> Lớp `RabbitCipher` trong dự án hỗ trợ cả 2 chế độ (`EndianMode::RFC4503` và `EndianMode::FSE2003_LE`).
+> Hai chuẩn chỉ khác nhau ở **cách viết byte**; các từ 32 bit bên trong (khóa `k0..k3`, trạng thái X, C, đầu ra `w0..w3`) giống hệt nhau. Vì vậy `RabbitCipher` xử lý theo 3 bước:
+> 1. Đổi 16 byte khóa / 8 byte IV thành các từ 32 bit theo thứ tự byte đã chọn (`ByteOrder::RFC` hoặc `ByteOrder::PDF`).
+> 2. Chạy thuật toán trên các từ 32 bit, viết theo đúng mã nguồn C trong Phụ lục A của bài báo.
+> 3. Đổi 4 từ đầu ra `w0..w3` thành 16 byte keystream theo thứ tự byte đã chọn.
+>
+> Test vector của bài báo chạy với `RabbitCipher cipher(ByteOrder::PDF)`, test vector RFC chạy với chế độ mặc định `ByteOrder::RFC`.
 
 ### 5.1. Bảng đối chiếu Test Vectors FSE 2003 (Theo tệp PDF Appendix B)
 
@@ -227,18 +231,25 @@ g++ -std=c++14 -O3 -Wall -Wextra -I./include src/rabbit.cpp src/utils.cpp src/fi
 
 #### A. Mã hóa tệp tin (Encrypt)
 ```bash
-# Cách 1: Sử dụng các cờ tham số (Flags)
-./encrypt_app.exe -k 912813292E3D36FE3BFC62F1DC51C3AC -iv C373F575C1267E59 -i input/sample.txt -o output/sample.enc
-
-# Cách 2: Tham số vị trí
+# ./encrypt_app.exe <file_vào> <file_ra> <khóa_hex_32_ký_tự> [iv_hex_16_ký_tự]
 ./encrypt_app.exe input/sample.txt output/sample.enc 912813292E3D36FE3BFC62F1DC51C3AC C373F575C1267E59
 ```
 
 #### B. Giải mã tệp tin (Decrypt)
 ```bash
-# Sử dụng cờ tham số:
-./decrypt_app.exe -k 912813292E3D36FE3BFC62F1DC51C3AC -iv C373F575C1267E59 -i output/sample.enc -o output/sample_dec.txt
+# Khóa và IV phải giống lúc mã hóa
+./decrypt_app.exe output/sample.enc output/sample_dec.txt 912813292E3D36FE3BFC62F1DC51C3AC C373F575C1267E59
 ```
+
+#### C. File log từng bước tính toán
+Các giá trị trung gian không in ra màn hình mà luôn được ghi vào file `.txt`:
+
+| Chương trình | File log | Nội dung |
+| :--- | :--- | :--- |
+| `encrypt_app` / `decrypt_app` | `<file_ra>.log.txt` (vd `output/sample.enc.log.txt`) | Key setup, IV setup, 4 khối keystream đầu tiên và phép XOR với dữ liệu |
+| `test_vectors_app` | `output/test_vectors_log.txt` | Toàn bộ 32 khối của 3 test vector trong PDF và 4 test vector RFC, kèm so sánh PASS/FAIL |
+
+Mỗi bước ghi đầy đủ giá trị: `k0..k3`, `X0..X7`, `C0..C7`, `carry`, `g0..g7` sau mỗi lần `next_state`, `w0..w3` và keystream ở cả dạng PDF lẫn RFC.
 
 ---
 
