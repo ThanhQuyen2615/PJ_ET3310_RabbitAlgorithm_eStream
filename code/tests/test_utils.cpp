@@ -28,6 +28,20 @@ int main() {
 
     std::cout << "========== UTILS TEST ==========\n";
 
+    checkResult(
+        Utils::rotl32(0x80000000u, 1) == 0x00000001u,
+        "rotl32: quay bit cao nhat sang bit thap nhat",
+        passed,
+        failed
+    );
+
+    checkResult(
+        Utils::rotl32(0x00000001u, 31) == 0x80000000u,
+        "rotl32: quay 31 bit",
+        passed,
+        failed
+    );
+
     std::cout << "\n========== SUMMARY ==========\n";
     std::cout << "Total : " << passed + failed << '\n';
     std::cout << "Passed: " << passed << '\n';
