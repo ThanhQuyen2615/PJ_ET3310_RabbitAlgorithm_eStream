@@ -1,0 +1,336 @@
+================================================================================
+  CÔNG VIỆC TUẦN NÀY - DỰ ÁN RABBIT STREAM CIPHER (ET3310)
+================================================================================
+
+QUY TẮC CHUNG (ai cũng phải đọc trước khi làm)
+--------------------------------------------------------------------------------
+1. Trước khi bắt đầu:
+       git switch main
+       git pull
+       git switch -c <nhanh-cua-ban>        (tên nhánh ghi ở từng việc bên dưới)
+
+2. Đọc code trước: code/include/rabbit.h (giao diện lớp RabbitCipher) và chạy thử:
+       cd code
+       mingw32-make test
+   Mở file code/output/test_vectors_log.txt để xem từng bước tính toán.
+
+3. Commit nhỏ, mỗi commit một thay đổi có nghĩa, message tiếng Việt không dấu, ví dụ:
+       git commit -m "test(key): them test vector RFC A.1 so 3"
+   Không tạo commit rỗng, không commit file .exe hay file trong code/output/.
+
+4. Trước khi push: "mingw32-make test" phải PASS hết, build không có warning.
+
+5. Push nhánh, mở Pull Request vào main, nhờ 1 người khác review.
+   Khi merge chọn "Create a merge commit", KHÔNG chọn "Squash and merge".
+
+6. Nếu file test mới cần chạy cùng "mingw32-make test": thêm tên file (không có .cpp)
+   vào dòng TESTS = ... trong code/Makefile. Nhiều người cùng sửa dòng này nên khi
+   merge có thể bị xung đột: chỉ cần giữ lại tên test của TẤT CẢ mọi người.
+
+7. Mỗi file test là một chương trình có hàm main(): in PASS/FAIL cho từng trường
+   hợp, cuối cùng return 1 nếu có trường hợp FAIL, return 0 nếu tất cả PASS.
+   Xem mẫu: code/tests/test_iv_setup.cpp
+
+8. Giá trị mong đợi trong test phải lấy từ TÀI LIỆU (file PDF, RFC 4503) hoặc tự
+   tính tay. Không được chạy code của mình rồi chép kết quả làm giá trị mong đợi
+   (làm vậy thì code sai test vẫn PASS).
+
+TIÊU CHÍ CHUNG KHI REVIEW
+   - Build không warning, mingw32-make test PASS.
+   - Code dễ đọc, comment tiếng Việt không dấu.
+   - Mỗi test có tên rõ ràng, khi FAIL in ra giá trị mong đợi và giá trị thực tế.
+
+
+================================================================================
+VIỆC 1 - Hoàn thiện test hàm g (gộp 2 nhánh của Minh Quân)
+================================================================================
+Nhánh: dùng lại feature/add-rabbit-tests
+File : code/tests/test_g_function.cpp
+
+Bối cảnh: trên GitHub có 2 nhánh chưa được merge vào main:
+   - feature/add-rabbit-tests     (commit "test: expand gFunc unit tests")
+   - feature/mquan_optimize_gfunc (commit "them kiem tra tran bit cho ham g")
+Cả 2 đều sửa test_g_function.cpp, trong khi main vừa đổi 1 dòng comment trong file
+này, nên khi merge sẽ có xung đột nhỏ.
+
+Cần làm:
+1. git switch feature/add-rabbit-tests, rồi git merge main. Sửa xung đột: giữ phần
+   code mới của bạn, comment viết tiếng Việt không dấu.
+2. Gộp nội dung nhánh feature/mquan_optimize_gfunc vào (git merge hoặc chép tay).
+   Sau đó nhánh mquan_optimize_gfunc không cần nữa.
+3. Đảm bảo có đủ các trường hợp sau (tự kiểm tra lại bằng tính tay):
+      g(0, 0)                 = 0x00000000
+      g(1, 0)                 = 0x00000001
+      g(0xFFFF, 0)            = 0xFFFE0001   (0xFFFF^2 vẫn nằm gọn trong 32 bit)
+      g(0x10000, 0)           = 0x00000001   (2^32: 32 bit thấp = 0, 32 bit cao = 1)
+      g(0xFFFFFFFF, 0)        = 0xFFFFFFFF   (bình phương = 0xFFFFFFFE00000001)
+      g(0xFFFFFFFF, 1)        = 0x00000000   (u + v tràn về 0)
+4. Thêm 2 tính chất, mỗi tính chất thử với 1000 cặp số ngẫu nhiên (dùng rand()):
+      g(u, v) == g(v, u)
+      g(u + k, v - k) == g(u, v)   (g chỉ phụ thuộc vào tổng u + v)
+5. Khi FAIL, in giá trị dạng hex 8 chữ số.
+
+Đạt yêu cầu khi: tất cả PASS, PR merge được vào main không còn xung đột.
+Gợi ý commit: merge main / gop nhanh mquan / them truong hop bien / them test tinh chat
+
+
+================================================================================
+VIỆC 2 - Test các hàm tiện ích: rotl32, hexToBytes, bytesToHex
+================================================================================
+Nhánh: feature/<ten>-test-utils
+File : code/tests/test_utils.cpp (tạo mới), code/Makefile (thêm test_utils vào TESTS)
+
+Đọc trước: code/include/utils.h, code/src/utils.cpp
+
+Cần làm:
+1. rotl32 (chỉ dùng với n từ 1 đến 31):
+      rotl32(0x80000000, 1)  = 0x00000001
+      rotl32(0x12345678, 8)  = 0x34567812
+      rotl32(0x12345678, 16) = 0x56781234
+      rotl32(0x00000001, 31) = 0x80000000
+   Thêm 1 tính chất: quay 8 rồi quay tiếp 24 thì ra lại số ban đầu (1000 số ngẫu nhiên).
+2. hexToBytes với chuỗi đúng:
+      "0A1B"   -> {0x0A, 0x1B}, trả về true
+      "ff00Aa" -> {0xFF, 0x00, 0xAA} (chữ hoa, chữ thường đều được)
+3. hexToBytes với chuỗi sai (phải trả về false):
+      ""       (rỗng)
+      "ABC"    (số ký tự lẻ)
+      "0G"     (G không phải hex)
+      "AA BB"  (có dấu cách)
+4. bytesToHex: {0x0A, 0x1B, 0xFF} -> "0A1BFF"
+5. Chuyển qua chuyển lại: hexToBytes(bytesToHex(x)) phải ra đúng x (thử 100 mảng ngẫu nhiên).
+
+Đạt yêu cầu khi: có ít nhất 15 trường hợp kiểm tra, tất cả PASS.
+Gợi ý commit: khung test_utils / test rotl32 / test hexToBytes dung / test hexToBytes sai /
+              test bytesToHex va chuyen qua lai
+
+
+================================================================================
+VIỆC 3 - Thêm getState() và test hệ thống bộ đếm (next_state)
+================================================================================
+Nhánh: feature/<ten>-test-next-state
+File : code/include/rabbit.h, code/src/rabbit.cpp, code/tests/test_next_state.cpp (đang trống)
+
+Bối cảnh: nextState() và trạng thái X, C nằm trong phần private nên test không đọc
+được. Cần thêm một hàm chỉ để đọc.
+
+Cần làm:
+1. Thêm vào phần public của RabbitCipher (rabbit.h) và cài đặt trong rabbit.cpp:
+      // Doc trang thai hien tai (chi doc, dung cho test).
+      const RabbitState& getState() const;
+2. Viết test_next_state.cpp, thêm test_next_state vào TESTS trong Makefile.
+3. Test 1 - trạng thái sau setupKey với khóa toàn 0 (thứ tự byte nào cũng được vì
+   khóa toàn 0). Giá trị lấy từ file log đã đối chiếu với code C trong PDF Phụ lục A:
+      X0..X7 = 6E9E1D18 F5A54E5C F8FD49C6 9B94253F DCD14A79 1F32FA20 D2055921 53F371D0
+      C0..C7 = E802074F 5206296D 01486DF2 67203CE4 23AACE55 26E87A8F CC2E04F2 D6A0F672
+      carry  = 1
+4. Test 2 - công thức bộ đếm: lưu lại C và carry, gọi generateBlock() (bên trong có
+   đúng 1 lần next_state), rồi tự tính lại theo công thức trong RFC 4503 mục 2.5:
+      temp = C_cu[j] + A[j] + carry  (tính bằng uint64_t, j = 0..7, carry lan dần)
+      C_moi[j] = 32 bit thấp của temp, carry tiếp theo = temp >> 32
+   So sánh với getState(). Lặp lại 1000 lần liên tiếp.
+   Hằng số A lấy từ tài liệu: 4D34D34D D34D34D3 34D34D34 4D34D34D D34D34D3 34D34D34
+   4D34D34D D34D34D3.
+5. Test 3 - carry luôn là 0 hoặc 1 sau mỗi vòng (thử 10 000 vòng).
+
+Đạt yêu cầu khi: getState() không làm thay đổi kết quả mã hóa (mingw32-make test vẫn
+PASS hết), 3 test trên PASS.
+Gợi ý commit: them getState / khung test_next_state / test trang thai sau key setup /
+              test cong thuc bo dem / test carry
+
+
+================================================================================
+VIỆC 4 - Test key setup
+================================================================================
+Nhánh: feature/<ten>-test-key-setup
+File : code/tests/test_key_setup.cpp (đang trống), code/Makefile
+
+Lưu ý: Makefile tự đổi tên chương trình thành test_key_init_app.exe vì Windows không
+cho chạy file .exe có chữ "setup" mà không có quyền admin. Không cần làm gì thêm.
+
+Cần làm:
+1. Thêm test vector RFC 4503 Phụ lục A.1 thứ 3 (hiện CHƯA có trong dự án):
+      key = 83 95 74 15 87 E0 C7 33 E9 E9 AB 01 C0 9B 00 43
+   Tự tra RFC 4503 (https://www.rfc-editor.org/rfc/rfc4503) để lấy S[0], S[1], S[2].
+   Dùng chế độ mặc định (ByteOrder::RFC).
+2. Cùng một khóa, 2 đối tượng RabbitCipher khác nhau phải cho cùng 5 khối keystream.
+3. Hiệu ứng thác (avalanche): với 100 khóa ngẫu nhiên, mỗi khóa đảo 1 bit ngẫu nhiên
+   để được khóa thứ 2, đếm số bit khác nhau giữa 2 khối keystream đầu tiên (trên 128
+   bit). Tỉ lệ TRUNG BÌNH của 100 lần phải nằm trong khoảng 48% - 52%. In tỉ lệ ra.
+   (Không kiểm tra từng lần riêng lẻ: 1 khối chỉ có 128 bit nên từng lần dao động
+   khoảng +-4.4%, code đúng vẫn có thể ra 38% hoặc 62%.)
+4. Gọi setupKey 2 lần trên cùng một đối tượng: kết quả phải giống đối tượng mới chỉ
+   gọi setupKey với khóa thứ 2.
+5. Khóa K ở chế độ ByteOrder::RFC và khóa K đảo ngược thứ tự byte ở chế độ
+   ByteOrder::PDF phải cho keystream là đảo ngược thứ tự byte của nhau.
+
+Đạt yêu cầu khi: 5 nhóm test trên PASS, giá trị A.1 thứ 3 ghi rõ nguồn trong comment.
+Gợi ý commit: khung test / vector RFC A.1 so 3 / test cung khoa / test avalanche /
+              test setupKey 2 lan / test PDF va RFC
+
+
+================================================================================
+VIỆC 5 - Mở rộng test IV setup
+================================================================================
+Nhánh: feature/<ten>-test-iv
+File : code/tests/test_iv_setup.cpp (đã có 1 test, cần viết thêm)
+
+Đọc trước: phần IV SETUP trong file code/output/sample.enc.log.txt (tạo ra bằng cách
+chạy encrypt_app với IV, xem README mục 7.3).
+
+Cần làm:
+1. Tách test hiện có thành một hàm riêng, thêm hàm in PASS/FAIL dùng chung.
+2. Thêm test vector RFC 4503 Phụ lục A.2 thứ 3 (CHƯA có trong dự án):
+      key = 00 (16 byte 0), IV = A6 EB 56 1A D2 F4 17 27
+   Tự tra RFC 4503 để lấy S[0], S[1], S[2].
+3. Cùng khóa, 2 IV khác nhau -> keystream khác nhau.
+4. Gọi setupIV 2 lần với cùng IV (ở giữa có mã hóa vài byte) -> lần 2 phải cho lại
+   đúng keystream như lần 1 (vì setupIV luôn bắt đầu lại từ master state).
+5. Hiệu ứng thác của IV: làm giống việc 4 mục 3 nhưng đảo 1 bit của IV (khóa giữ
+   nguyên). Tỉ lệ trung bình của 100 lần phải nằm trong khoảng 48% - 52%.
+6. Minh họa nguy hiểm khi dùng lại IV: mã hóa 2 bản rõ P1, P2 (mỗi cái 32 byte) với
+   cùng khóa và cùng IV được C1, C2. Kiểm tra C1 XOR C2 == P1 XOR P2, nghĩa là kẻ tấn
+   công không cần khóa vẫn biết được P1 XOR P2. Ghi giải thích trong comment.
+
+Đạt yêu cầu khi: 6 mục trên PASS.
+Gợi ý commit: tach ham test / vector A.2 so 3 / test khac IV / test dat lai IV /
+              test avalanche IV / test dung lai IV
+
+
+================================================================================
+VIỆC 6 - Test sinh keystream và thứ tự byte
+================================================================================
+Nhánh: feature/<ten>-test-keystream
+File : code/tests/test_keystream_generation.cpp (đang trống), code/Makefile
+
+Đọc trước: README mục 5 (3 bước đổi thứ tự byte), phần "[Buoc 2]" và "[Buoc 3]" trong
+code/output/test_vectors_log.txt.
+
+Cần làm:
+1. Hai khối keystream liên tiếp phải khác nhau.
+2. Thứ tự byte: với 100 khóa ngẫu nhiên K, cipher RFC dùng khóa K và cipher PDF dùng K
+   đảo ngược. Mỗi khối keystream của PDF phải là khối của RFC đảo ngược (kiểm tra 10
+   khối đầu). Làm lại lần nữa có thêm IV (IV cũng đảo ngược cho bên PDF).
+3. process() trên 16 byte toàn 0 phải cho ra đúng khối generateBlock() (dùng 2 đối
+   tượng cùng khóa).
+4. Cân bằng bit: sinh 1 MB keystream, đếm số bit 1. Tỉ lệ phải trong khoảng 49.5% - 50.5%.
+5. Phân bố byte: đếm số lần xuất hiện của từng giá trị 0..255 trong 1 MB keystream.
+   Mỗi giá trị phải xuất hiện khoảng 4096 lần; chấp nhận trong khoảng 3700 - 4500.
+6. Trong 10 000 khối đầu tiên không có 2 khối nào giống nhau (dùng std::set hoặc so
+   từng cặp với số khối nhỏ hơn).
+
+Đạt yêu cầu khi: 6 mục PASS, chạy dưới 5 giây.
+Gợi ý commit: khung test / test khoi lien tiep / test thu tu byte / test process /
+              test can bang bit / test phan bo byte / test khong lap
+
+
+================================================================================
+VIỆC 7 - Test mã hóa / giải mã
+================================================================================
+Nhánh: feature/<ten>-test-encrypt-decrypt
+File : code/tests/test_encrypt_decrypt.cpp (đang trống), code/Makefile
+
+Cần làm:
+1. Mã hóa chuỗi "Xin chao ET3310!" rồi giải mã (đối tượng mới, cùng khóa và IV) ->
+   ra đúng chuỗi ban đầu; bản mã phải khác bản rõ.
+2. Làm tương tự với 1 MB dữ liệu ngẫu nhiên.
+3. Dữ liệu rỗng (length = 0): không lỗi, không thay đổi gì.
+4. Mã hóa tại chỗ (input và output cùng mảng) cho kết quả giống mã hóa sang mảng khác.
+5. Chia nhỏ: mã hóa 1000 byte một lần, so với mã hóa lần lượt các đoạn dài
+   1, 7, 15, 16, 17, 100 và phần còn lại -> kết quả phải giống nhau.
+6. Bản rõ toàn 0 thì bản mã chính là keystream: so với test vector RFC A.2.2
+   (đã có trong code/tests/test_vectors.cpp).
+7. Giải mã sai khóa (đổi 1 byte) hoặc sai IV -> kết quả khác bản rõ.
+8. Đảo 1 bit của bản mã rồi giải mã -> đúng 1 bit tương ứng của bản rõ bị đảo. Ghi
+   comment giải thích: mật mã dòng không phát hiện được dữ liệu bị sửa, cần thêm MAC.
+
+Đạt yêu cầu khi: 8 mục PASS.
+Gợi ý commit: khung test / test chuoi / test 1MB / test rong va tai cho / test chia nho /
+              test keystream / test sai khoa / test dao bit
+
+
+================================================================================
+VIỆC 8 - Sửa phần đo thời gian trong encrypt/decrypt
+================================================================================
+Nhánh: feature/<ten>-fix-timing
+File : code/encrypt/encrypt.cpp, code/decrypt/decrypt.cpp
+
+Vấn đề: hiện tại thời gian đo bao gồm cả thời gian ghi log 4 khối đầu vào file .txt,
+nên số đo bị sai (README mục 6 ghi khoảng 1.4 ms cho file PDF 233 KB, bây giờ đo ra
+khoảng 3 ms). Ngoài ra chương trình không còn in tốc độ MB/s.
+
+Cần làm:
+1. Tách làm 2 đối tượng RabbitCipher có cùng khóa và IV:
+      - cipherLog: có setLog(&logFile), chỉ xử lý tối đa 64 byte đầu của dữ liệu vào
+        một mảng tạm, mục đích duy nhất là ghi log. Kết quả mảng tạm bỏ đi.
+      - cipher: KHÔNG ghi log, xử lý toàn bộ dữ liệu, đây là phần được đo thời gian.
+2. In ra màn hình và ghi vào cuối file log: thời gian (ms) và tốc độ (MB/s).
+   Nếu thời gian đo được bằng 0 thì không chia (in "qua nhanh de do").
+3. Kiểm tra: file mã hóa tạo ra phải GIỐNG HỆT trước khi sửa (dùng lệnh
+   "cmp file_cu file_moi" trong Git Bash, hoặc "fc /b file_cu file_moi" trong cmd).
+4. Làm tương tự cho decrypt.cpp.
+5. Đo lại với file 978-3-540-39887-5_23.pdf, chạy 5 lần, ghi kết quả trung bình vào
+   phần mô tả Pull Request (chưa cần sửa README, việc 10 sẽ làm).
+
+Đạt yêu cầu khi: mã hóa rồi giải mã sample.txt và file PDF ra đúng file gốc; file log
+vẫn có đủ key setup, IV setup, 4 khối đầu; thời gian không còn bao gồm ghi log.
+Gợi ý commit: tach cipher ghi log trong encrypt / them MB/s / ap dung cho decrypt
+
+
+================================================================================
+VIỆC 9 - Makefile: sửa lệnh clean và thêm lệnh demo
+================================================================================
+Nhánh: feature/<ten>-makefile
+File : code/Makefile, README.md (chỉ mục 7.2 và 5.3)
+
+Vấn đề: "mingw32-make clean" dùng lệnh del của Windows, chạy trong Git Bash sẽ lỗi.
+
+Cần làm:
+1. Sửa clean để chạy được cả trong PowerShell/cmd lẫn Git Bash. Gợi ý: kiểm tra biến
+   SHELL hoặc sự tồn tại của lệnh rm. Thử cả 2 môi trường, ghi kết quả vào PR.
+2. Thêm lệnh "demo":
+      mingw32-make demo
+   Lệnh này build encrypt_app, decrypt_app, mã hóa input/sample.txt ra
+   output/sample.enc, giải mã ra output/sample_dec.txt, rồi so sánh với file gốc
+   (cmp hoặc fc /b) và in "DEMO OK" nếu giống nhau.
+3. Thêm lệnh "help": in danh sách các lệnh make có thể dùng (all, test, demo, clean).
+4. Cập nhật README mục 5.3 (hiện ghi "make test" chỉ chạy test_vectors, thực tế chạy
+   tất cả test trong TESTS) và mục 7.2 (giới thiệu mingw32-make demo / help).
+
+Đạt yêu cầu khi: clean, demo, help chạy được trong cả PowerShell và Git Bash.
+Gợi ý commit: sua clean / them demo / them help / cap nhat README
+
+
+================================================================================
+VIỆC 10 - Tài liệu: hướng dẫn đọc file log + sửa README cho đúng code
+================================================================================
+Nhánh: feature/<ten>-docs
+File : docs/huong_dan_doc_log.md (tạo mới), README.md (mục 3, 4, 6)
+
+Cần làm:
+1. Tạo docs/huong_dan_doc_log.md giải thích từng dòng trong file
+   code/output/test_vectors_log.txt, dùng PDF Vector 1 (khóa toàn 0) làm ví dụ:
+      - [Buoc 1]: 16 byte khóa -> k0..k3, vì sao có 2 thứ tự byte PDF / RFC
+      - Trạng thái ban đầu X, C được tạo từ k0..k3 thế nào (chỉ ra dòng code)
+      - Mỗi lần next_state: bộ đếm mới, carry, g0..g7, X mới
+      - Tự tính tay lần next_state thứ 1: C0 = 0 + 4D34D34D + 0 = 4D34D34D và kiểm tra
+        g0 = C0F8D72B (bình phương 4D34D34D thành số 64 bit, rồi XOR nửa cao với nửa
+        thấp). Trình bày từng bước tính.
+      - [Buoc 2] w0..w3 và [Buoc 3] keystream dạng PDF / RFC, so với PDF Phụ lục B
+2. Sửa README mục 3 (cây thư mục): thêm tests/, input/, output/, docs/, mô tả đúng
+   từng file hiện có.
+3. Sửa README mục 4 (bảng tối ưu): bỏ hoặc sửa các dòng không còn đúng với code hiện
+   tại (đọc code rồi đối chiếu từng dòng).
+4. README mục 6: thêm ghi chú "số liệu sẽ được đo lại sau khi xong việc 8".
+
+Đạt yêu cầu khi: người chưa đọc code chỉ cần đọc file hướng dẫn là hiểu được file log;
+phép tính tay g0 ra đúng C0F8D72B; README không còn mô tả sai code.
+Gợi ý commit: khung tai lieu / giai thich key setup / giai thich next_state va tinh tay g0 /
+              giai thich keystream / sua README muc 3 / sua README muc 4 va 6
+
+
+================================================================================
+CÔNG VIỆC KHÁC: lưu IV vào đầu file mã hóa và tự sinh IV ngẫu nhiên,
+xử lý file lớn theo từng khối 64 KB, gộp code chung của encrypt/decrypt, chương trình
+benchmark, bản tham chiếu Python để đối chiếu, GitHub Actions tự chạy test, slide.
+================================================================================
