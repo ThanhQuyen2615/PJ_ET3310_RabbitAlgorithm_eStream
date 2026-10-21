@@ -4,7 +4,6 @@ CXXFLAGS = -std=c++14 -O3 -Wall -Wextra -I./include
 SRCS_CORE = src/rabbit.cpp src/utils.cpp src/file_io.cpp
 
 # Cac chuong trinh test trong tests/. Them ten vao day khi file .cpp da co ham main().
-TESTS = test_vectors test_g_function test_iv_setup
 TESTS = test_vectors test_g_function test_iv_setup test_encrypt_decrypt
 
 
@@ -40,10 +39,14 @@ $(TARGET_DECRYPT): $(SRCS_CORE) decrypt/decrypt.cpp
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 # Build va chay tat ca chuong trinh test; dung lai o loi dau tien.
-test: $(addprefix run_,$(TEST_APPS))
+RUN_TESTS = $(addprefix run_,$(TEST_APPS))
 
-run_%: %
+test: $(RUN_TESTS)
+
+# Static pattern rule: tranh make nham run_%_app.exe voi luat bien dich %_app.exe
+$(RUN_TESTS): run_%: %
 	./$<
+
 
 clean:
 	$(RM) $(TARGET_ENCRYPT) $(TARGET_DECRYPT) $(TEST_APPS)
