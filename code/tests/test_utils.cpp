@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -22,9 +23,54 @@ void checkResult(
     }
 }
 
+// Tao so gia ngau nhien 32 bit bang rand().
+uint32_t random32() {
+    uint32_t result = 0;
+
+    for (int i = 0; i < 4; ++i) {
+        result = (result << 8)
+               | static_cast<uint32_t>(rand() & 0xFF);
+    }
+
+    return result;
+}
+
+// Quay 8 bit roi 24 bit phai tra ve gia tri ban dau.
+void testRotationProperty(int& passed, int& failed) {
+    int failedBefore = failed;
+
+    for (int i = 0; i < 1000; ++i) {
+        uint32_t expected = random32();
+        uint32_t actual = Utils::rotl32(
+            Utils::rotl32(expected, 8),
+            24
+        );
+
+        if (actual == expected) {
+            ++passed;
+        } else {
+            ++failed;
+            std::cout << "rotl32 property case " << i + 1
+                      << ": FAIL | Expected: 0x"
+                      << std::hex << std::uppercase
+                      << std::setfill('0') << std::setw(8)
+                      << expected
+                      << " | Actual: 0x" << std::setw(8) << actual
+                      << std::dec << '\n';
+        }
+    }
+
+    std::cout << "rotl32: quay 8 roi 24 bit (1000 cases): "
+              << (failed == failedBefore ? "PASS" : "FAIL")
+              << '\n';
+}
+
 int main() {
     int passed = 0;
     int failed = 0;
+
+    // Seed co dinh de co the tai lap ket qua kiem thu.
+    srand(12345);
 
     std::cout << "========== UTILS TEST ==========\n";
 
@@ -55,6 +101,8 @@ int main() {
         passed,
         failed
     );
+
+    testRotationProperty(passed, failed);
 
     std::cout << "\n========== SUMMARY ==========\n";
     std::cout << "Total : " << passed + failed << '\n';
