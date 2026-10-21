@@ -139,6 +139,46 @@ void testBytesToHex(
     }
 }
 
+// Chuyen byte sang hex roi chuyen nguoc lai phai giu nguyen du lieu.
+void testRoundTrip(int& passed, int& failed) {
+    int failedBefore = failed;
+
+    for (int testIndex = 0; testIndex < 100; ++testIndex) {
+        size_t length = 1 + static_cast<size_t>(rand() % 64);
+        std::vector<uint8_t> expected(length);
+
+        for (size_t i = 0; i < length; ++i) {
+            expected[i] = static_cast<uint8_t>(rand() & 0xFF);
+        }
+
+        std::string hex = Utils::bytesToHex(
+            expected.data(),
+            expected.size()
+        );
+
+        std::vector<uint8_t> actual;
+        bool converted = Utils::hexToBytes(hex, actual);
+
+        if (converted && actual == expected) {
+            ++passed;
+        } else {
+            ++failed;
+            std::cout << "hex round-trip case " << testIndex + 1
+                      << ": FAIL | Expected: "
+                      << Utils::bytesToHex(expected.data(), expected.size())
+                      << " | Actual: "
+                      << (converted
+                              ? Utils::bytesToHex(actual.data(), actual.size())
+                              : "conversion failed")
+                      << '\n';
+        }
+    }
+
+    std::cout << "hex round-trip (100 cases): "
+              << (failed == failedBefore ? "PASS" : "FAIL")
+              << '\n';
+}
+
 int main() {
     int passed = 0;
     int failed = 0;
@@ -245,6 +285,8 @@ int main() {
         passed,
         failed
     );
+
+    testRoundTrip(passed, failed);
 
     std::cout << "\n========== SUMMARY ==========\n";
     std::cout << "Total : " << passed + failed << '\n';
