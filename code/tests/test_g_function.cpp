@@ -170,7 +170,15 @@ int main() {
     runTest("Test 6: g(0xFFFFFFFF, 1)",
             0xFFFFFFFFu, 0x00000001u,
             0x00000000u, passed, failed);
+    // Test 7: g(1, 1) = 4.
+    runTest("Test 7: g(1, 1)",
+        0x00000001u, 0x00000001u,
+        0x00000004u, passed, failed);
 
+    // Test 8: Phep cong 32 bit tran ve 1.
+    runTest("Test 8: g(0xFFFFFFFF, 2)",
+        0xFFFFFFFFu, 0x00000002u,
+        0x00000001u, passed, failed);
     std::cout << "\n========== PROPERTY TESTS ==========\n";
 
     testCommutative(passed, failed);
