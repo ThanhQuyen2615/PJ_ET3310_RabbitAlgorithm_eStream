@@ -93,6 +93,30 @@ void testValidHex(
               << '\n';
 }
 
+// Kiem tra chuoi hex khong hop le phai bi tu choi.
+void testInvalidHex(
+    const std::string& name,
+    const std::string& hex,
+    int& passed,
+    int& failed
+) {
+    std::vector<uint8_t> actual;
+    bool converted = Utils::hexToBytes(hex, actual);
+
+    if (!converted) {
+        ++passed;
+        std::cout << name << ": PASS\n";
+    } else {
+        ++failed;
+        std::cout << name << ": FAIL"
+                  << " | Expected return: false"
+                  << " | Actual return: true"
+                  << " | Actual bytes: "
+                  << Utils::bytesToHex(actual.data(), actual.size())
+                  << '\n';
+    }
+}
+
 int main() {
     int passed = 0;
     int failed = 0;
@@ -144,6 +168,20 @@ int main() {
         "hexToBytes: chu hoa va chu thuong",
         "ff00Aa",
         std::vector<uint8_t>{0xFF, 0x00, 0xAA},
+        passed,
+        failed
+    );
+
+    testInvalidHex(
+        "hexToBytes: chuoi rong",
+        "",
+        passed,
+        failed
+    );
+
+    testInvalidHex(
+        "hexToBytes: so ky tu le",
+        "ABC",
         passed,
         failed
     );
