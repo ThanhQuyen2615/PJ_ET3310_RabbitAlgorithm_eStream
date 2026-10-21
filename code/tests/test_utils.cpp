@@ -186,6 +186,20 @@ int main() {
         failed
     );
 
+    testInvalidHex(
+        "hexToBytes: ky tu khong phai hex",
+        "0G",
+        passed,
+        failed
+    );
+
+    testInvalidHex(
+        "hexToBytes: chuoi co dau cach",
+        "AA BB",
+        passed,
+        failed
+    );
+
     std::cout << "\n========== SUMMARY ==========\n";
     std::cout << "Total : " << passed + failed << '\n';
     std::cout << "Passed: " << passed << '\n';
