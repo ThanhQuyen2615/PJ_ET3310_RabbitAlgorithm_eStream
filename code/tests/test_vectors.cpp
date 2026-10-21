@@ -6,12 +6,22 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <fstream>
 
-// Helper to compare actual vs expected bytes and print result
-static bool verifyBlock(const std::string& testName,
+// So sanh khoi 16 byte voi gia tri mong doi va in PASS/FAIL.
+static bool verifyBlock(std::ostream& log,
+                        const std::string& testName,
                         const uint8_t actual[16],
                         const uint8_t expected[16]) {
     bool match = (std::memcmp(actual, expected, 16) == 0);
+
+    log << "  >> KIEM TRA " << testName << "\n";
+    log << "     Gia tri trong tai lieu : ";
+    for (int i = 0; i < 16; ++i) log << Utils::bytesToHex(expected + i, 1) << " ";
+    log << "\n     Gia tri tinh duoc      : ";
+    for (int i = 0; i < 16; ++i) log << Utils::bytesToHex(actual + i, 1) << " ";
+    log << "\n     Ket qua                : " << (match ? "PASS" : "FAIL") << "\n";
+
     std::cout << "  " << std::left << std::setw(32) << testName << ": ";
     if (match) {
         std::cout << "[PASS]\n";
@@ -23,6 +33,7 @@ static bool verifyBlock(const std::string& testName,
     return match;
 }
 
+
 int main() {
     std::cout << "====================================================================\n";
     std::cout << "      RABBIT STREAM CIPHER - OFFICIAL TEST VECTORS VERIFICATION     \n";
@@ -31,8 +42,13 @@ int main() {
     int totalTests = 0;
     int passedTests = 0;
 
+    // Moi buoc tinh toan duoc ghi vao file nay, khong in ra man hinh.
+    const char* logPath = "output/test_vectors_log.txt";
+    std::ofstream logFile(logPath);
+    logFile << "RABBIT - TEST VECTOR (PDF Phu luc B va RFC 4503 Phu luc A)\n";
+
     // =========================================================================
-    // SUITE 1: FSE 2003 Test Vectors (from PDF 978-3-540-39887-5_23.pdf App B)
+    // BO TEST 1: Test vector FSE 2003 (PDF 978-3-540-39887-5_23.pdf, Phu luc B)
     // =========================================================================
     std::cout << "--------------------------------------------------------------------\n";
     std::cout << " SUITE 1: FSE 2003 Original Paper Vectors (Little-Endian / PDF App B)\n";
@@ -40,8 +56,10 @@ int main() {
 
     // --- Vector 1 (Key = 0) ---
     {
+        logFile << "\n\n######################## Vector 1 (Key = 0) ########################\n";
         uint8_t key[16] = {0};
-        RabbitCipher cipher(EndianMode::FSE2003_LE);
+        RabbitCipher cipher(ByteOrder::PDF);
+        cipher.setLog(&logFile, 32);
         cipher.setupKey(key);
 
         uint8_t exp_s0[16]  = {0x02, 0xF7, 0x4A, 0x1C, 0x26, 0x45, 0x6B, 0xF5, 0xEC, 0xD6, 0xA5, 0x36, 0xF0, 0x54, 0x57, 0xB1};
@@ -53,21 +71,23 @@ int main() {
             cipher.generateBlock(block);
             if (r == 0) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 1 (Key=0) s[0]", block, exp_s0)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 1 (Key=0) s[0]", block, exp_s0)) passedTests++;
             } else if (r == 1) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 1 (Key=0) s[1]", block, exp_s1)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 1 (Key=0) s[1]", block, exp_s1)) passedTests++;
             } else if (r == 31) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 1 (Key=0) s[31]", block, exp_s31)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 1 (Key=0) s[31]", block, exp_s31)) passedTests++;
             }
         }
     }
 
-    // --- Vector 2 (Key = C2 1F CF 38 ...) ---
+    // --- Vector 2 (Key = C2 1F CF 38 81 CD 5E E8 62 8A CC B0 A9 89 0D F8) ---
     {
+        logFile << "\n\n######################## Vector 2 (Key = C2 1F CF 38 81 CD 5E E8 62 8A CC B0 A9 89 0D F8) ########################\n";
         uint8_t key[16] = {0xC2, 0x1F, 0xCF, 0x38, 0x81, 0xCD, 0x5E, 0xE8, 0x62, 0x8A, 0xCC, 0xB0, 0xA9, 0x89, 0x0D, 0xF8};
-        RabbitCipher cipher(EndianMode::FSE2003_LE);
+        RabbitCipher cipher(ByteOrder::PDF);
+        cipher.setLog(&logFile, 32);
         cipher.setupKey(key);
 
         uint8_t exp_s0[16]  = {0x3D, 0x02, 0xE0, 0xC7, 0x30, 0x55, 0x91, 0x12, 0xB4, 0x73, 0xB7, 0x90, 0xDE, 0xE0, 0x18, 0xDF};
@@ -79,21 +99,23 @@ int main() {
             cipher.generateBlock(block);
             if (r == 0) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 2 (Key=C2..) s[0]", block, exp_s0)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 2 (Key=C2..) s[0]", block, exp_s0)) passedTests++;
             } else if (r == 1) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 2 (Key=C2..) s[1]", block, exp_s1)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 2 (Key=C2..) s[1]", block, exp_s1)) passedTests++;
             } else if (r == 31) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 2 (Key=C2..) s[31]", block, exp_s31)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 2 (Key=C2..) s[31]", block, exp_s31)) passedTests++;
             }
         }
     }
 
-    // --- Vector 3 (Key = 1D 27 2C 6A ...) ---
+    // --- Vector 3 (Key = 1D 27 2C 6A 2D 8E 3D FC AC 14 05 6B 78 D6 33 A0) ---
     {
+        logFile << "\n\n######################## Vector 3 (Key = 1D 27 2C 6A 2D 8E 3D FC AC 14 05 6B 78 D6 33 A0) ########################\n";
         uint8_t key[16] = {0x1D, 0x27, 0x2C, 0x6A, 0x2D, 0x8E, 0x3D, 0xFC, 0xAC, 0x14, 0x05, 0x6B, 0x78, 0xD6, 0x33, 0xA0};
-        RabbitCipher cipher(EndianMode::FSE2003_LE);
+        RabbitCipher cipher(ByteOrder::PDF);
+        cipher.setLog(&logFile, 32);
         cipher.setupKey(key);
 
         uint8_t exp_s0[16]  = {0xA3, 0xA9, 0x7A, 0xBB, 0x80, 0x39, 0x38, 0x20, 0xB7, 0xE5, 0x0C, 0x4A, 0xBB, 0x53, 0x82, 0x3D};
@@ -105,28 +127,30 @@ int main() {
             cipher.generateBlock(block);
             if (r == 0) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 3 (Key=1D..) s[0]", block, exp_s0)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 3 (Key=1D..) s[0]", block, exp_s0)) passedTests++;
             } else if (r == 1) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 3 (Key=1D..) s[1]", block, exp_s1)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 3 (Key=1D..) s[1]", block, exp_s1)) passedTests++;
             } else if (r == 31) {
                 totalTests++;
-                if (verifyBlock("PDF Vector 3 (Key=1D..) s[31]", block, exp_s31)) passedTests++;
+                if (verifyBlock(logFile, "PDF Vector 3 (Key=1D..) s[31]", block, exp_s31)) passedTests++;
             }
         }
     }
 
     // =========================================================================
-    // SUITE 2: RFC 4503 Test Vectors (Appendix A: Conformance Testing)
+    // BO TEST 2: Test vector RFC 4503 (Phu luc A)
     // =========================================================================
     std::cout << "\n--------------------------------------------------------------------\n";
     std::cout << " SUITE 2: RFC 4503 Standard Vectors (Big-Endian OS2IP / Appendix A)\n";
     std::cout << "--------------------------------------------------------------------\n";
 
-    // --- Vector A.1.1 (Key = 0, No IV) ---
+    // --- Vector A.1.1 (Key = 0, khong IV) ---
     {
+        logFile << "\n\n######################## Vector A.1.1 (Key = 0, khong IV) ########################\n";
         uint8_t key[16] = {0};
-        RabbitCipher cipher(EndianMode::RFC4503);
+        RabbitCipher cipher;
+        cipher.setLog(&logFile, 32);
         cipher.setupKey(key);
 
         uint8_t exp_s0[16] = {0xB1, 0x57, 0x54, 0xF0, 0x36, 0xA5, 0xD6, 0xEC, 0xF5, 0x6B, 0x45, 0x26, 0x1C, 0x4A, 0xF7, 0x02};
@@ -136,21 +160,23 @@ int main() {
         uint8_t block[16];
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.1.1 (Key=0) S[0]", block, exp_s0)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.1.1 (Key=0) S[0]", block, exp_s0)) passedTests++;
 
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.1.1 (Key=0) S[1]", block, exp_s1)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.1.1 (Key=0) S[1]", block, exp_s1)) passedTests++;
 
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.1.1 (Key=0) S[2]", block, exp_s2)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.1.1 (Key=0) S[2]", block, exp_s2)) passedTests++;
     }
 
-    // --- Vector A.1.2 (Key = 91 28 13 29..., No IV) ---
+    // --- Vector A.1.2 (Key = 91 28 13 29 2E 3D 36 FE 3B FC 62 F1 DC 51 C3 AC, khong IV) ---
     {
+        logFile << "\n\n######################## Vector A.1.2 (Key = 91 28 13 29 2E 3D 36 FE 3B FC 62 F1 DC 51 C3 AC, khong IV) ########################\n";
         uint8_t key[16] = {0x91, 0x28, 0x13, 0x29, 0x2E, 0x3D, 0x36, 0xFE, 0x3B, 0xFC, 0x62, 0xF1, 0xDC, 0x51, 0xC3, 0xAC};
-        RabbitCipher cipher(EndianMode::RFC4503);
+        RabbitCipher cipher;
+        cipher.setLog(&logFile, 32);
         cipher.setupKey(key);
 
         uint8_t exp_s0[16] = {0x3D, 0x2D, 0xF3, 0xC8, 0x3E, 0xF6, 0x27, 0xA1, 0xE9, 0x7F, 0xC3, 0x84, 0x87, 0xE2, 0x51, 0x9C};
@@ -160,22 +186,24 @@ int main() {
         uint8_t block[16];
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.1.2 (Key=91..) S[0]", block, exp_s0)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.1.2 (Key=91..) S[0]", block, exp_s0)) passedTests++;
 
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.1.2 (Key=91..) S[1]", block, exp_s1)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.1.2 (Key=91..) S[1]", block, exp_s1)) passedTests++;
 
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.1.2 (Key=91..) S[2]", block, exp_s2)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.1.2 (Key=91..) S[2]", block, exp_s2)) passedTests++;
     }
 
     // --- Vector A.2.1 (Key = 0, IV = 0) ---
     {
+        logFile << "\n\n######################## Vector A.2.1 (Key = 0, IV = 0) ########################\n";
         uint8_t key[16] = {0};
         uint8_t iv[8]  = {0};
-        RabbitCipher cipher(EndianMode::RFC4503);
+        RabbitCipher cipher;
+        cipher.setLog(&logFile, 32);
         cipher.setupKey(key);
         cipher.setupIV(iv);
 
@@ -186,22 +214,24 @@ int main() {
         uint8_t block[16];
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.2.1 (IV=0) S[0]", block, exp_s0)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.2.1 (IV=0) S[0]", block, exp_s0)) passedTests++;
 
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.2.1 (IV=0) S[1]", block, exp_s1)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.2.1 (IV=0) S[1]", block, exp_s1)) passedTests++;
 
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.2.1 (IV=0) S[2]", block, exp_s2)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.2.1 (IV=0) S[2]", block, exp_s2)) passedTests++;
     }
 
     // --- Vector A.2.2 (Key = 0, IV = C3 73 F5 75 C1 26 7E 59) ---
     {
+        logFile << "\n\n######################## Vector A.2.2 (Key = 0, IV = C3 73 F5 75 C1 26 7E 59) ########################\n";
         uint8_t key[16] = {0};
         uint8_t iv[8]  = {0xC3, 0x73, 0xF5, 0x75, 0xC1, 0x26, 0x7E, 0x59};
-        RabbitCipher cipher(EndianMode::RFC4503);
+        RabbitCipher cipher;
+        cipher.setLog(&logFile, 32);
         cipher.setupKey(key);
         cipher.setupIV(iv);
 
@@ -212,24 +242,25 @@ int main() {
         uint8_t block[16];
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.2.2 (IV=C3..) S[0]", block, exp_s0)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.2.2 (IV=C3..) S[0]", block, exp_s0)) passedTests++;
 
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.2.2 (IV=C3..) S[1]", block, exp_s1)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.2.2 (IV=C3..) S[1]", block, exp_s1)) passedTests++;
 
         cipher.generateBlock(block);
         totalTests++;
-        if (verifyBlock("RFC 4503 A.2.2 (IV=C3..) S[2]", block, exp_s2)) passedTests++;
+        if (verifyBlock(logFile, "RFC 4503 A.2.2 (IV=C3..) S[2]", block, exp_s2)) passedTests++;
     }
 
     // =========================================================================
-    // SUMMARY
+    // TONG KET
     // =========================================================================
     std::cout << "\n====================================================================\n";
     std::cout << " TEST SUMMARY: " << passedTests << " / " << totalTests << " TESTS PASSED (";
     std::cout << std::fixed << std::setprecision(1) << (passedTests * 100.0 / totalTests) << "%)\n";
     std::cout << "====================================================================\n";
+    std::cout << " Chi tiet tung buoc: " << logPath << "\n";
 
     return (passedTests == totalTests) ? 0 : 1;
 }

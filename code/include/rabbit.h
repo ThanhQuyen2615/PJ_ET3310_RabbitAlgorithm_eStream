@@ -2,105 +2,62 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <vector>
+#include <ostream>
 
-// Algorithm parameter constants defined in RFC 4503 and FSE 2003
-constexpr size_t RABBIT_KEY_SIZE   = 16;  // 128-bit secret key = 16 bytes
-constexpr size_t RABBIT_IV_SIZE    = 8;   // 64-bit initialization vector = 8 bytes
-constexpr size_t RABBIT_BLOCK_SIZE = 16;  // 128-bit keystream output block = 16 bytes
-
-/**
- * @brief Endianness format conventions supported by the Rabbit cipher.
- * 
- * - RFC4503: Standardized Internet RFC format (Big-Endian OS2IP / I2OSP octet ordering).
- * - FSE2003_LE: Original FSE 2003 paper format (978-3-540-39887-5_23.pdf Appendix B,
- *               Little-Endian word and byte ordering used on x86 architectures).
- */
-enum class EndianMode {
-    RFC4503,      // RFC 4503 Standard (Default)
-    FSE2003_LE    // FSE 2003 Original Paper (PDF Appendix B)
+// Thu tu byte khi doi 16 byte khoa / 8 byte IV / 16 byte keystream <-> cac tu 32 bit.
+// Hai cach chi khac nhau o cach viet byte; trang thai ben trong giong het nhau.
+enum class ByteOrder {
+    RFC,   // RFC 4503: byte cao viet truoc (big-endian)
+    PDF    // Bai bao FSE 2003 (Phu luc A, B): byte thap viet truoc (little-endian)
 };
 
-/**
- * @brief Rabbit cipher internal 513-bit state structure.
- * 
- * [INTERNAL STATE SPECIFICATION (RFC 4503 Section 2.2 / FSE 2003 Section 2.1)]
- * The internal state consists of:
- *  - 8 state words X0..X7 (32-bit each = 256 bits)
- *  - 8 counter words C0..C7 (32-bit each = 256 bits)
- *  - 1 counter carry bit 'carry' (1 bit)
- * Total internal state: 256 + 256 + 1 = 513 bits.
- */
+// Trang thai trong: 8 tu trang thai + 8 bo dem + 1 bit nho = 513 bit.
 struct RabbitState {
-    uint32_t x[8];    // State variables X0..X7
-    uint32_t c[8];    // Counter variables C0..C7
-    uint32_t carry;   // Counter carry bit b (0 or 1)
+    uint32_t x[8];    // Bien trang thai X0..X7
+    uint32_t c[8];    // Bien dem C0..C7
+    uint32_t carry;   // Bit nho cua bo dem (0 hoac 1)
 };
 
-/**
- * @brief High-performance C++ class implementing the Rabbit Stream Cipher.
- */
+// Ma dong Rabbit. Ma hoa va giai ma la cung mot phep toan.
+// Thu tu goi: setupKey() -> setupIV() (khong bat buoc) -> process().
 class RabbitCipher {
 public:
-    explicit RabbitCipher(EndianMode mode = EndianMode::RFC4503);
-    ~RabbitCipher() = default;
+    explicit RabbitCipher(ByteOrder byteOrder = ByteOrder::RFC);
 
-    /**
-     * @brief Configure byte-ordering mode (RFC 4503 Big-Endian vs FSE 2003 Little-Endian).
-     */
-    void setEndianMode(EndianMode mode);
-    EndianMode getEndianMode() const;
+    // Ghi tung buoc tinh toan vao `out` (vd mot file .txt). Chi ghi chi tiet
+    // `maxBlocks` khoi keystream dau tien de file log khong qua lon.
+    void setLog(std::ostream* out, int maxBlocks = 4);
 
-    /**
-     * @brief Initializes cipher state using a 128-bit key.
-     * @param key 16-byte raw key array.
-     */
-    void setupKey(const uint8_t key[RABBIT_KEY_SIZE]);
-    void setupKey(const std::vector<uint8_t>& key);
+    // Nap khoa 16 byte.
+    void setupKey(const uint8_t key[16]);
 
-    /**
-     * @brief Mixes a 64-bit Initialization Vector (IV) into counter state.
-     * @param iv 8-byte raw IV array.
-     */
-    void setupIV(const uint8_t iv[RABBIT_IV_SIZE]);
-    void setupIV(const std::vector<uint8_t>& iv);
+    // Tron IV 8 byte vao trang thai. Goi sau setupKey().
+    void setupIV(const uint8_t iv[8]);
 
-    /**
-     * @brief Resets the working state back to the Master State (post-key-setup).
-     */
-    void resetToMaster();
+    // Sinh khoi keystream 16 byte tiep theo.
+    void generateBlock(uint8_t output[16]);
 
-    /**
-     * @brief Generates one 128-bit (16-byte) keystream block.
-     * @param output 16-byte destination buffer.
-     */
-    void generateBlock(uint8_t output[RABBIT_BLOCK_SIZE]);
-
-    /**
-     * @brief Encrypts or decrypts arbitrary-length data stream.
-     * @param input Pointer to source data buffer.
-     * @param output Pointer to destination data buffer (can be identical to input for in-place).
-     * @param length Number of bytes to process.
-     */
+    // XOR du lieu voi keystream. input va output co the la cung mot mang.
     void process(const uint8_t* input, uint8_t* output, size_t length);
-    void process(std::vector<uint8_t>& data);
-
-    // Context status inspectors
-    bool isKeySet() const;
-    bool isIVSet() const;
 
 private:
-    RabbitState state_;       // Working internal state
-    RabbitState masterState_; // Cached master state after Key Setup
-    bool hasKey_;             // Key initialization flag
-    bool hasIV_;              // IV initialization flag
-    EndianMode endianMode_;   // Endianness convention (RFC 4503 vs FSE 2003)
+    ByteOrder order;
+    RabbitState state;          // Trang thai hien tai
+    RabbitState master;         // Trang thai luu lai sau setupKey(), setupIV() bat dau tu day
+    uint8_t keystream[16];      // Khoi keystream dang dung
+    int used = 16;              // So byte da dung trong keystream (16 = da dung het)
 
-    uint8_t buffer_[RABBIT_BLOCK_SIZE]; // 16-byte keystream cache buffer
-    size_t bufferPos_;                  // Read pointer in keystream cache
+    std::ostream* log = nullptr; // Noi ghi log (nullptr = khong ghi)
+    int maxLogBlocks = 4;        // So khoi keystream dau tien duoc ghi chi tiet
+    int rounds = 0;              // So lan da chay next_state
+    int blocks = 0;              // So khoi keystream da sinh
 
-    /**
-     * @brief Executes one iteration of the Counter System & Next-State function.
-     */
+    // Cap nhat bo dem va trang thai them mot vong.
     void nextState();
+
+    // Co dang ghi log chi tiet khong.
+    bool logging() const;
+
+    // Ghi X0..X7, C0..C7, carry vao log.
+    void logState() const;
 };
