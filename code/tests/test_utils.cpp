@@ -117,6 +117,28 @@ void testInvalidHex(
     }
 }
 
+// Kiem tra chuyen mang byte thanh chuoi hex viet hoa.
+void testBytesToHex(
+    const std::string& name,
+    const std::vector<uint8_t>& input,
+    const std::string& expected,
+    int& passed,
+    int& failed
+) {
+    std::string actual = Utils::bytesToHex(input.data(), input.size());
+
+    if (actual == expected) {
+        ++passed;
+        std::cout << name << ": PASS\n";
+    } else {
+        ++failed;
+        std::cout << name << ": FAIL"
+                  << " | Expected: " << expected
+                  << " | Actual: " << actual
+                  << '\n';
+    }
+}
+
 int main() {
     int passed = 0;
     int failed = 0;
@@ -196,6 +218,30 @@ int main() {
     testInvalidHex(
         "hexToBytes: chuoi co dau cach",
         "AA BB",
+        passed,
+        failed
+    );
+
+    testBytesToHex(
+        "bytesToHex: mang byte co ban",
+        std::vector<uint8_t>{0x0A, 0x1B, 0xFF},
+        "0A1BFF",
+        passed,
+        failed
+    );
+
+    testBytesToHex(
+        "bytesToHex: byte 00",
+        std::vector<uint8_t>{0x00},
+        "00",
+        passed,
+        failed
+    );
+
+    testBytesToHex(
+        "bytesToHex: gia tri bien",
+        std::vector<uint8_t>{0x00, 0xFF},
+        "00FF",
         passed,
         failed
     );
