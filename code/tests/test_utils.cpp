@@ -42,6 +42,20 @@ int main() {
         failed
     );
 
+    checkResult(
+        Utils::rotl32(0x12345678u, 8) == 0x34567812u,
+        "rotl32: quay 8 bit",
+        passed,
+        failed
+    );
+
+    checkResult(
+        Utils::rotl32(0x12345678u, 16) == 0x56781234u,
+        "rotl32: quay 16 bit",
+        passed,
+        failed
+    );
+
     std::cout << "\n========== SUMMARY ==========\n";
     std::cout << "Total : " << passed + failed << '\n';
     std::cout << "Passed: " << passed << '\n';
