@@ -65,6 +65,34 @@ void testRotationProperty(int& passed, int& failed) {
               << '\n';
 }
 
+// Kiem tra chuyen chuoi hex hop le thanh dung mang byte mong doi.
+void testValidHex(
+    const std::string& name,
+    const std::string& hex,
+    const std::vector<uint8_t>& expected,
+    int& passed,
+    int& failed
+) {
+    std::vector<uint8_t> actual;
+    bool converted = Utils::hexToBytes(hex, actual);
+
+    if (converted && actual == expected) {
+        ++passed;
+        std::cout << name << ": PASS\n";
+        return;
+    }
+
+    ++failed;
+    std::cout << name << ": FAIL"
+              << " | Expected: "
+              << Utils::bytesToHex(expected.data(), expected.size())
+              << " | Actual: "
+              << (converted
+                      ? Utils::bytesToHex(actual.data(), actual.size())
+                      : "conversion failed")
+              << '\n';
+}
+
 int main() {
     int passed = 0;
     int failed = 0;
@@ -103,6 +131,14 @@ int main() {
     );
 
     testRotationProperty(passed, failed);
+
+    testValidHex(
+        "hexToBytes: chuoi 0A1B",
+        "0A1B",
+        std::vector<uint8_t>{0x0A, 0x1B},
+        passed,
+        failed
+    );
 
     std::cout << "\n========== SUMMARY ==========\n";
     std::cout << "Total : " << passed + failed << '\n';
