@@ -140,6 +140,14 @@ int main() {
         failed
     );
 
+    testValidHex(
+        "hexToBytes: chu hoa va chu thuong",
+        "ff00Aa",
+        std::vector<uint8_t>{0xFF, 0x00, 0xAA},
+        passed,
+        failed
+    );
+
     std::cout << "\n========== SUMMARY ==========\n";
     std::cout << "Total : " << passed + failed << '\n';
     std::cout << "Passed: " << passed << '\n';
