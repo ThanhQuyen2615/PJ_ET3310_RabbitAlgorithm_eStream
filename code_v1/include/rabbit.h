@@ -10,8 +10,10 @@
 #include <vector>
 #include <algorithm>
 using namespace std;
-unsigned long long maxsize = 4294967296ll;
+const unsigned long long maxsize = 4294967296ll;
 
+//ham khoi tao lai gia tri dau
 #include "init.h"
 //ham quay
+
 
