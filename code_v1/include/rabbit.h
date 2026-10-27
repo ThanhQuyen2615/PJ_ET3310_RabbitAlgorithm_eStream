@@ -12,8 +12,6 @@
 using namespace std;
 unsigned long long maxsize = 4294967296ll;
 
-//ham khoi tao lai gia tri ban dau
-void init();
-
+#include "init.h"
 //ham quay
 
