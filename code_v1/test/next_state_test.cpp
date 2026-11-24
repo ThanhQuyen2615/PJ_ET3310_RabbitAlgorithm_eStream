@@ -1,11 +1,10 @@
-
 #include "../include/next_state.h"
 #include "../include/init.h"
 #include <iostream>
 using namespace std;
 
-void runTest(const char* name, int type, int rounds,
-             uint32_t expected[8]) {
+bool runTest(const char* name, int type, int rounds,
+             const uint32_t expected[8]) {
     init();
 
     for (int i = 0; i < 8; i++) {
@@ -33,6 +32,7 @@ void runTest(const char* name, int type, int rounds,
     }
 
     cout << dec << "Passed: " << passed << "/8\n\n";
+    return passed == 8;
 }
 
 int main() {
@@ -56,10 +56,12 @@ int main() {
         0x697EEC69, 0xFF210ACB, 0xF08EB82C, 0xEECF5C87
     };
 
-    runTest("Test 1: X = 0", 0, 1, t1);
-    runTest("Test 2: X lon nhat", 1, 1, t2);
-    runTest("Test 3: X[i] = i + 1", 2, 1, t3);
-    runTest("Test 4: Cap nhat 2 lan", 0, 2, t4);
+    int failed = 0;
+    if (!runTest("Test 1: X = 0", 0, 1, t1)) failed++;
+    if (!runTest("Test 2: X lon nhat", 1, 1, t2)) failed++;
+    if (!runTest("Test 3: X[i] = i + 1", 2, 1, t3)) failed++;
+    if (!runTest("Test 4: Cap nhat 2 lan", 0, 2, t4)) failed++;
 
-    return 0;
+    return failed == 0 ? 0 : 1;
 }
+
